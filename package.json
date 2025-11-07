@@ -1,0 +1,64 @@
+{
+  "name": "term-project-team-h",
+  "version": "1.0.0",
+  "description": "Project README",
+  "main": "index.js",
+  "scripts": {
+    "build:backend": "rm -rf dist && tsc && cp -R src/backend/views dist/views",
+    "build:frontend": "esbuild src/frontend/entrypoint.ts --bundle --outfile=dist/public/js/bundle.js",
+    "build": "npm run build:backend && npm run build:frontend",
+    "start": "node dist/server.js",
+    "dev:frontend": "esbuild src/frontend/entrypoint.ts --bundle --outfile=src/backend/public/js/bundle.js --sourcemap --target=es2020 --watch",
+    "dev:backend": "nodemon --exec ts-node src/backend/server.ts",
+    "dev:live": "browser-sync start --proxy 'http://localhost:3001' --port 3000 --files 'src/backend/**/*.ts' 'src/backend/**/*.ejs' 'src/backend/public/**/*' --reload-delay 1000 --no-ui --no-open",
+    "dev": "concurrently --names \"backend,frontend,live\" --prefix-colors \"green,blue,magenta\" \"npm run dev:backend\" \"npm run dev:frontend\" \"npm run dev:live\"",
+    "start:dev": "npm run dev",
+    "migrate:create": "node-pg-migrate create -j ts -- ",
+    "migrate:up": "node-pg-migrate up",
+    "migrate:down": "node-pg-migrate down"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/csc-667-fall-2025-roberts/term-project-team-h.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/csc-667-fall-2025-roberts/term-project-team-h/issues"
+  },
+  "homepage": "https://github.com/csc-667-fall-2025-roberts/term-project-team-h#readme",
+  "dependencies": {
+    "body-parser": "^2.2.0",
+    "dotenv": "^17.2.3",
+    "ejs": "^3.1.10",
+    "express": "^5.1.0",
+    "http-errors": "^2.0.0",
+    "morgan": "^1.10.1",
+    "node-pg-migrate": "^8.0.3",
+    "pg-promise": "^12.2.0"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.3",
+    "@types/morgan": "^1.9.10",
+    "@types/node": "^24.6.0",
+    "@types/node-pg-migrate": "^2.3.1",
+    "@typescript-eslint/eslint-plugin": "^8.46.0",
+    "@typescript-eslint/parser": "^8.46.0",
+    "browser-sync": "^3.0.4",
+    "concurrently": "^9.2.1",
+    "esbuild": "^0.25.10",
+    "eslint": "^9.37.0",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-prettier": "^5.5.4",
+    "husky": "^9.1.7",
+    "lint-staged": "^16.2.3",
+    "nodemon": "^3.1.10",
+    "prettier": "^3.6.2",
+    "prettier-plugin-ejs": "^1.0.3",
+    "prettier-plugin-organize-imports": "^4.3.0",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.9.2"
+  }
+}
