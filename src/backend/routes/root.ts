@@ -1,13 +1,10 @@
 import express from "express";
+import { requireGuest } from "../middleware";
 
 const router = express.Router();
 
-router.get("/", (request, response) => {
-  response.render("root", { gamesListing: ["a", "b", "c", "etc"] });
-});
-
-router.post("/", (request, response) => {
-  response.send("you posted");
+router.get("/", requireGuest, (_request, response) => {
+  response.render("root");
 });
 
 export default router;
