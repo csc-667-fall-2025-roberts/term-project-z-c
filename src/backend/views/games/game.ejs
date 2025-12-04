@@ -3,18 +3,29 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Game <%= id %></title>
+    <title>UNO Game <%= game.id %></title>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <script src="https://cdn.tailwindcss.com"></script>
   </head>
-  <body>
-    <h1>
-      Welcome to game
-      <%= id %>
-    </h1>
-    <p>
-      <%= name %> with max players <%= max_players %>, created at <%= (new
-      Date(created_at)).toLocaleDateString() %> by <%= created_by %>
-    </p>
+  <body class="min-h-screen bg-gradient-to-br from-purple-500 to-indigo-500 font-sans p-5 flex items-center justify-center">
 
-    <p><a href="/lobby">Return to lobby</a></p>
+    <div class="bg-white rounded-xl shadow-lg max-w-2xl w-full p-8 text-center space-y-6">
+      <!-- Header -->
+      <h1 class="text-3xl font-bold text-indigo-600">🎮 Welcome to Game <%= game.id %></h1>
+
+      <!-- Game Info -->
+      <div class="text-gray-700 space-y-2 text-left">
+        <p><span class="font-semibold">Name:</span> <%= game.name %></p>
+        <p><span class="font-semibold">Max Players:</span> <%= game.capacity %></p>
+        <p><span class="font-semibold">Created At:</span> <%= new Date(game.start_time).toLocaleString() %></p>
+        <p><span class="font-semibold">Host User ID:</span> <%= game.host_id %></p>
+      </div>
+
+      <!-- Action Button -->
+      <a href="/lobby" class="inline-block bg-gradient-to-r from-teal-500 to-green-400 text-white px-6 py-3 rounded-lg font-semibold shadow-md hover:shadow-lg transition">
+        ⬅️ Return to Lobby
+      </a>
+    </div>
+
   </body>
 </html>

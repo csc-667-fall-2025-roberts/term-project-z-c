@@ -35,4 +35,5 @@ export type Game = {
   state: GameState;
   max_players: number;
   created_at: Date;
+  start_time: Date;
 };

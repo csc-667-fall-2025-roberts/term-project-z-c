@@ -1,13 +1,14 @@
 export const CREATE_GAME = `
-INSERT INTO games (created_by, name, max_players)
-VALUES ($1, $2, $3)
+INSERT INTO games (host_id, name, capacity, status, start_time)
+VALUES ($1, $2, $3, 'waiting', NOW())
 RETURNING *
 `;
 
 export const JOIN_GAME = `
-INSERT INTO "gameParticipants" (game_id, user_id)
-VALUES ($1, $2)
+INSERT INTO game_participants (game_id, user_id, player_order, is_winner, disconnected)
+VALUES ($1, $2, 1, FALSE, FALSE)
 `;
+
 
 export const LIST_GAMES = `
 SELECT 
@@ -24,17 +25,17 @@ SELECT
     '[]'
   ) AS players
 FROM games g
-LEFT JOIN "gameParticipants" gp ON g.id=gp.game_id
+LEFT JOIN "game_participants" gp ON g.id=gp.game_id
 LEFT JOIN users u ON u.id=gp.user_id
-WHERE g.state=$1
+WHERE g.status=$1
 GROUP BY g.id
-ORDER BY g.created_at DESC
+ORDER BY g.start_time DESC
 LIMIT $2
 `;
 
 export const GAMES_BY_USER = `
-SELECT games.* FROM "gameParticipants", games
-WHERE "gameParticipants".game_id=games.id AND user_id=$1
+SELECT games.* FROM "game_participants", games
+WHERE "game_participants".game_id=games.id AND user_id=$1
 `;
 
 export const GAME_BY_ID = `

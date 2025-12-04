@@ -9,6 +9,7 @@ const signup = async (username: string, email: string, clearTextPassword: string
   try {
     return await db.one<User>(SIGNUP, [username, email, password, null]);
   } catch (e: any) {
+    console.error("SIGNUP ERROR:", e);
     throw "Email or username invalid";
   }
 };

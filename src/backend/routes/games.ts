@@ -41,8 +41,12 @@ router.get("/:id", async (request, response) => {
   const { id } = request.params;
   const game = await Games.get(parseInt(id));
 
-  response.render("games/game", { ...game });
+  // Convert start_time properly
+  game.start_time = new Date(game.start_time + "Z");
+
+  response.render("games/game", { game });
 });
+
 
 router.post("/:game_id/join", async (request, response) => {
   const { id } = request.session.user!;
@@ -50,7 +54,7 @@ router.post("/:game_id/join", async (request, response) => {
 
   await Games.join(parseInt(game_id), id);
 
-  response.redirect(`/games/${id}`);
+  response.redirect(`/games/${game_id}`);
 });
 
 export default router;

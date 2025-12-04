@@ -5,109 +5,38 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Log In</title>
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <style>
-      /* Page centering and simple scoped form styles */
-      html, body {
-        height: 100%;
-      }
-      body {
-        margin: 0;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        background: #f7fafc;
-        font-family: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial;
-      }
-      .login-card {
-        width: 360px;
-        background: #fff;
-        border: 1px solid #e6e6e6;
-        border-radius: 10px;
-        box-shadow: 0 6px 20px rgba(16,24,40,0.06);
-        padding: 24px;
-        box-sizing: border-box;
-      }
-      .login-card h1 {
-        margin: 0 0 12px 0;
-        font-size: 20px;
-        text-align: center;
-      }
-      .field {
-        display: flex;
-        flex-direction: column;
-        gap: 6px;
-      }
-      .field + .field {
-        margin-top: 12px;
-      }
-      label {
-        font-size: 13px;
-        color: #111827;
-      }
-      input[type="text"],
-      input[type="password"] {
-        width: 100%;
-        padding: 10px 12px;
-        border: 1px solid #d1d5db;
-        border-radius: 8px;
-        font-size: 14px;
-        box-sizing: border-box;
-      }
-      .actions {
-        display: flex;
-        flex-direction: column;
-        gap: 8px;
-        margin-top: 16px;
-      }
-      button[type="submit"] {
-        background: #2563eb;
-        color: white;
-        border: none;
-        padding: 10px 12px;
-        border-radius: 8px;
-        cursor: pointer;
-        font-weight: 600;
-        font-size: 14px;
-      }
-      .signup-link {
-        text-align: center;
-        display: block;
-        color: #2563eb;
-        text-decoration: none;
-        font-size: 13px;
-      }
-      .error {
-        background: #fff5f5;
-        border: 1px solid #fecaca;
-        color: #991b1b;
-        padding: 8px 10px;
-        border-radius: 6px;
-        margin-bottom: 10px;
-        font-size: 13px;
-      }
-    </style>
+    <script src="https://cdn.tailwindcss.com"></script>
   </head>
-  <body>
-    <div class="login-card" role="main">
-      <h1>Log In</h1>
-      <form method="post" action="/auth/login">
-        <% if(locals.error) { %>
-        <p class="error"><%= locals.error %></p>
+  <body class="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-500 to-indigo-500 font-sans p-5">
+    <div class="w-full max-w-md bg-white rounded-xl shadow-2xl p-8">
+      <h1 class="text-3xl font-bold text-center text-indigo-700 mb-6 bg-clip-text text-transparent bg-gradient-to-r from-indigo-500 to-purple-600">
+        🎮 UNO Login
+      </h1>
+
+      <form method="post" action="/auth/login" class="space-y-5">
+        <% if (locals.error) { %>
+          <p class="bg-red-100 border border-red-300 text-red-700 px-3 py-2 rounded-md text-sm">
+            <%= locals.error %>
+          </p>
         <% } %>
 
-        <div class="field">
-          <label for="username">Username</label>
-          <input id="username" type="text" name="username" />
+        <div class="flex flex-col gap-1">
+          <label for="username" class="text-sm font-medium text-gray-700">Username</label>
+          <input id="username" type="text" name="username" placeholder="Enter your username"
+            class="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500" />
         </div>
 
-        <div class="field">
-          <label for="password">Password</label>
-          <input id="password" type="password" name="password" />
+        <div class="flex flex-col gap-1">
+          <label for="password" class="text-sm font-medium text-gray-700">Password</label>
+          <input id="password" type="password" name="password" placeholder="Enter your password"
+            class="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500" />
         </div>
 
-        <div class="actions">
-          <button type="submit">Login</button>
-          <a class="signup-link" href="/auth/signup">Create an account</a>
+        <div class="flex flex-col gap-3 mt-4">
+          <button type="submit" class="w-full bg-gradient-to-r from-indigo-500 to-purple-600 text-white font-semibold py-2 rounded-md shadow-md hover:shadow-lg transition">
+            Login
+          </button>
+          <a href="/auth/signup" class="text-center text-indigo-100 hover:text-white text-sm transition">Create an account</a>
         </div>
       </form>
     </div>
