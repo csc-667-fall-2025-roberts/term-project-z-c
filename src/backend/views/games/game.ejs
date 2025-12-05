@@ -7,22 +7,25 @@
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <script src="https://cdn.tailwindcss.com"></script>
   </head>
-  <body class="min-h-screen bg-gradient-to-br from-purple-500 to-indigo-500 font-sans p-5 flex items-center justify-center">
+  <body class="min-h-screen bg-gradient-to-br from-[#1a1a2e] to-[#16213e] font-sans p-5 flex items-center justify-center">
 
-    <div class="bg-white rounded-xl shadow-lg max-w-2xl w-full p-8 text-center space-y-6">
+    <div class="bg-white rounded-3xl shadow-2xl max-w-2xl w-full p-12 text-center space-y-8">
       <!-- Header -->
-      <h1 class="text-3xl font-bold text-indigo-600">🎮 Welcome to Game <%= game.id %></h1>
+      <div class="text-center mb-6">
+        <div class="text-6xl mb-4">🎴</div>
+        <h1 class="text-4xl font-black text-gray-800 uppercase tracking-wider">Game <%= game.id %></h1>
+      </div>
 
       <!-- Game Info -->
-      <div class="text-gray-700 space-y-2 text-left">
-        <p><span class="font-semibold">Name:</span> <%= game.name %></p>
-        <p><span class="font-semibold">Max Players:</span> <%= game.capacity %></p>
-        <p><span class="font-semibold">Created At:</span> <%= new Date(game.start_time).toLocaleString() %></p>
-        <p><span class="font-semibold">Host User ID:</span> <%= game.host_id %></p>
+      <div class="text-gray-700 space-y-3 text-left bg-gray-50 rounded-2xl p-6 border-2 border-gray-200">
+        <p class="text-lg"><span class="font-black text-gray-800 uppercase tracking-wide">Name:</span> <%= game.name %></p>
+        <p class="text-lg"><span class="font-black text-gray-800 uppercase tracking-wide">Max Players:</span> <%= game.capacity %></p>
+        <p class="text-lg"><span class="font-black text-gray-800 uppercase tracking-wide">Created At:</span> <%= new Date(game.start_time).toLocaleString() %></p>
+        <p class="text-lg"><span class="font-black text-gray-800 uppercase tracking-wide">Host User ID:</span> <%= game.host_id %></p>
       </div>
 
       <!-- Action Button -->
-      <a href="/lobby" class="inline-block bg-gradient-to-r from-teal-500 to-green-400 text-white px-6 py-3 rounded-lg font-semibold shadow-md hover:shadow-lg transition">
+      <a href="/lobby" class="inline-block bg-gradient-to-r from-green-500 to-green-600 text-white px-8 py-4 rounded-full font-bold shadow-lg hover:shadow-xl transition uppercase tracking-wider border-2 border-white text-lg">
         ⬅️ Return to Lobby
       </a>
     </div>
