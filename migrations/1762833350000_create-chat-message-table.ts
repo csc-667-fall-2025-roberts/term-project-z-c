@@ -1,4 +1,4 @@
-import { PgType, type MigrationBuilder } from 'node-pg-migrate';
+import { MigrationBuilder } from "node-pg-migrate";
 
 export async function up(pgm: MigrationBuilder): Promise<void> {
   pgm.createTable("chat", {

@@ -20,20 +20,62 @@ export interface DbChatMessage {
 export interface ChatMessage extends DbChatMessage {
   username: string;
   email: string;
+  user_id: number;
 }
 
 export enum GameState {
   LOBBY = "lobby",
-  ACTIVE = "active",
-  COMPLETED = "completed",
+  IN_PROGRESS = "in_progress",
+  ENDED = "ended",
 }
 
 export type Game = {
   id: number;
   name?: string;
-  created_by: number;
-  state: GameState;
-  max_players: number;
+  host_id: number;
+  host_username?: string;
   created_at: Date;
-  start_time: Date;
+  is_ready: boolean;
+  capacity: number;
+  player_count?: number;
+  winner_id?: number;
+  state: GameState;
+  current_turn: number;
 };
+
+export type GamePlayer = {
+  user_id: number;
+  username: string;
+  display_name?: string;
+  email: string;
+  position: number;
+  game_id: number;
+  is_ready: boolean;
+};
+
+export type GameCard = {
+  id: number;
+  game_id: number;
+  card_id: number;
+  owner_id: number;
+  location: number;
+  value: string;
+  color: string;
+
+};
+
+export type Card = {
+  id: number;
+  color: string;
+  value: string;
+
+};
+
+export interface DisplayGameCard
+  extends GameCard, Omit<Card, 'id' >
+  {
+    user_id?: number;
+    value: string; 
+
+
+  }

@@ -1,5 +1,5 @@
 import express from "express";
-import createHttpError from "http-errors";
+//import createHttpError from "http-errors";
 import morgan from "morgan";
 import * as path from "path";
 
@@ -25,12 +25,14 @@ if (isDevelopment) {
   liveReloadServer.watch([path.join(__dirname, "views"), path.join(__dirname, "public")]);
 }
 
+
 const app = express();
 const httpServer = createServer(app);
 
-app.set("trust proxy", 1);
-
+// Initialize Socket.IO BEFORE static and routes
 app.set("io", initSockets(httpServer));
+
+app.set("trust proxy", 1);
 
 const PORT = process.env.PORT || 3000;
 
@@ -49,9 +51,16 @@ app.use(
 app.use(bodyParser.urlencoded());
 app.use(bodyParser.json());
 
-// Serve static files from public directory (relative to this file's location)
-// Dev: src/backend/public | Prod: dist/public
-app.use(express.static(path.join(__dirname, "public")));
+// Serve static files from frontend build directory
+// Serve ONLY from Vite build output
+const staticPath = isDevelopment
+  ? path.join(__dirname, "public")
+  : path.join(__dirname, "public");
+app.use(express.static(staticPath));
+
+// Also serve legacy/static assets from Application/Public
+const publicAssetsPath = path.join(__dirname, "..", "..", "Public");
+app.use(express.static(publicAssetsPath));
 
 // Set views directory (relative to this file's location)
 // Dev: src/backend/views | Prod: dist/views
@@ -65,7 +74,9 @@ app.use("/auth", routes.auth);
 app.use("/lobby", requireUser, routes.lobby);
 app.use("/chat", requireUser, routes.chat);
 app.use("/games", requireUser, routes.games);
+app.use("/readyup", requireUser, routes.readyup);
 
+/*
 app.use((_request, _response, next) => {
   next(createHttpError(404));
 });
@@ -91,6 +102,54 @@ app.use((err: any, req: express.Request, res: express.Response, _next: express.N
   }
 
   res.status(status).render("errors/error", {
+    status,
+    message,
+    stack: isProduction ? null : err.stack,
+  });
+});
+
+const server = httpServer.listen(PORT, () => {
+  logger.info(`Server started on port ${PORT}`);
+});
+
+httpServer.on("error", (error) => {
+  logger.error("Server error:", error);
+});
+*/
+
+// 404: no route matched → render friendly page
+app.use((req, res) => {
+  res.status(404).render("errors/404", { url: req.originalUrl });
+});
+
+// Error handler middleware (must be last)
+app.use((err: any, req: express.Request, res: express.Response, _next: express.NextFunction) => {
+  // Check if headers have already been sent
+  if (res.headersSent) {
+    // Delegate to default Express error handler
+    return _next(err);
+  }
+
+  const status = err.status || 500;
+  const isProduction = process.env.NODE_ENV === "production";
+  const message = isProduction ? "Something went wrong on our side." : (err.message || "Internal Server Error");
+
+  // Skip logging browser-generated requests
+  if (!req.url.startsWith("/.well-known/")) {
+    const errorMsg = `${message} (${req.method} ${req.url})`;
+
+    if (isProduction) {
+      // Production: log stack to file, show short console message
+      logger.error(errorMsg, { stack: err.stack });
+      console.error(`Error ${status}: ${message} - See logs/error.log for details`);
+    } else {
+      // Development: log everything to console
+      logger.error(errorMsg, err);
+    }
+  }
+
+  // Render friendly 500 page (stack only in dev)
+  res.status(status).render("errors/500", {
     status,
     message,
     stack: isProduction ? null : err.stack,

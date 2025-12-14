@@ -1,0 +1,181 @@
+import socketIO from "socket.io-client";
+import * as EVENTS from "../shared/keys";
+import type { GamePlayer } from "../types/types";
+
+const gameId = parseInt((document.getElementById("game-id") as HTMLInputElement).value);
+const socket = socketIO( {query: { gameId: gameId.toString()}});
+
+let currentUserId: number;
+let capacity: number;
+let players: GamePlayer[] = [];
+
+const playersList = document.querySelector<HTMLUListElement>("#playersGrid")!;
+const readyButton = document.querySelector<HTMLButtonElement>("#readyButton")!;
+const startGameButton = document.querySelector<HTMLButtonElement>("#startGameButton")!;
+const readyCountSpan = document.querySelector<HTMLSpanElement>("#readyCount")!;
+const totalPlayers = document.querySelector<HTMLSpanElement> ( "#totalPlayers")!;
+const progressFill = document.querySelector<HTMLDivElement>("#progressFill")!;
+
+const loadPlayers = async () => {
+    const response = await fetch(`/readyup/${gameId}/players`, { method: "get", credentials: "include" });
+    const data = await response.json();
+
+    players = data.players;
+    currentUserId = data.currentUserId;
+    capacity = data.capacity;
+
+    renderedPlayers();
+    updateReadyStatus();
+};
+
+const renderedPlayers = () => {
+        const cards: string[] = [];
+
+        players.forEach((player) => {
+            const isCurrentUser = player.user_id === currentUserId;
+            const isHost = player.position === 1;
+            const name = player.display_name || player.username;
+            
+            const initials  = name.substring(0,2).toUpperCase();
+            cards.push(`
+              <div class="player-card ${isHost ? "host" : ""} ${player.is_ready ? "ready" : ""} ${isCurrentUser ? "current-user" : ""}">  
+                <div class="player-avatar">
+                 <div class="avatar-circle">${isCurrentUser ? "You" : initials} </div>
+                 </div>
+                 <div class= "player-info">
+                     <div class="player-name">${name} ${isHost ? "(Host)" : ""}</div>
+                    <div class="player-status">${player.is_ready ? "Ready" : "Waiting.."} </div>
+                 </div>   
+                 <div class="ready-indicator ${player.is_ready ? "ready" : ""}">
+                   ${player.is_ready ? '<span class="checkmark">✓</span>' : '<div class="dot"></div><div class="dot"></div><div class="dot"></div>'}
+                 </div>
+      </div>
+    `);
+  });
+
+                                                                                                                             
+            
+    for (let i = players.length; i < capacity; i++){
+        cards.push(`
+            <div class="player-card empty">
+                <div class="player-avatar">
+                    <div class="avatar-circle empty"> ? </div>
+                </div>
+                <div class="player-info">
+                    <div class="player-name">Waiting for Player...</div>
+                    <div class="player-status">-</div>
+                </div>
+            </div>
+        `);
+    }
+
+    playersList.innerHTML = cards.join("");
+};
+
+const updateReadyStatus = () => {
+    const readyCount = players.filter((p) => p.is_ready).length;
+    const percentage = players.length > 0 ? (readyCount / players.length) * 100 : 0;
+
+    readyCountSpan.textContent = readyCount.toString();
+    totalPlayers.textContent = players.length.toString();
+    progressFill.style.width = `${percentage}%`;
+
+    const me = players.find((p) => p.user_id === currentUserId);
+    const isHost = me?.position === 1;
+    
+    if (me) {
+        if (me.is_ready) {
+            readyButton.classList.add("ready");
+            readyButton.querySelector(".btn-text")!.textContent = "Not Ready";
+        } else {
+            readyButton.classList.remove("ready");
+            readyButton.querySelector(".btn-text")!.textContent = "I'm Ready!";
+        }
+    }
+    
+    // Show start game button if: host + at least 2 players ready (including host)
+    const canStartGame = isHost && readyCount >= 2 && players.length >= 2;
+    startGameButton.style.display = canStartGame ? "block" : "none";
+};
+
+socket.on(EVENTS.PLAYER_JOINED, (data: { gameId: number; userId: number; username: string }) => {
+    console.log(EVENTS.PLAYER_JOINED, data);
+
+    loadPlayers();
+});
+
+socket.on(EVENTS.PLAYER_LEFT, (data: { gameId: number; userId: number; username: string }) => {
+    console.log(EVENTS.PLAYER_LEFT, data);
+
+    loadPlayers();
+});
+
+socket.on(EVENTS.PLAYER_READY, (data: { gameId: number; userId: number; isReady: boolean }) => {
+    console.log(EVENTS.PLAYER_READY, data);
+
+    const player = players.find((p) => p.user_id === data.userId);
+    if (player) {
+        player.is_ready = data.isReady;
+        renderedPlayers();
+        updateReadyStatus();
+    }
+});
+
+socket.on(EVENTS.GAME_START, (data: { gameId: number; starterId: number; topCard: any }) => {
+    console.log("Received GAME_START event:", EVENTS.GAME_START, data);
+
+    window.location.href = `/games/${gameId}`;
+});
+
+const toggleReady = () => {
+    fetch(`/readyup/${gameId}/toggle`, {
+        method: "post",
+        credentials: "include",
+    });
+};
+
+readyButton.addEventListener("click", (event) => {
+    event.preventDefault();
+
+    toggleReady();
+});
+
+startGameButton.addEventListener("click", async (event) => {
+    event.preventDefault();
+    
+    disableButtor("Starting...")
+    
+    try {
+        const response = await fetch(`/games/${gameId}/start`, {
+            method: "post",
+            credentials: "include",
+        });
+        
+        if (response.ok) {
+            console.log("Game started successfully");
+            window.location.href = `/games/${gameId}`;
+        } else {
+            console.error("Failed to start game");
+            enableButton("Start Game");
+        
+        }
+    } catch (error) {
+        console.error("Error starting game:", error);
+        enableButton("Start Game");
+    }
+
+    function disableButtor(buttonText: string) {
+        startGameButton.disabled = true;
+        startGameButton.querySelector(".btn-text")!.textContent = buttonText
+    }
+
+    function enableButton(buttonText: string) {
+        startGameButton.disabled = false;
+        startGameButton.querySelector(".btn-text")!.textContent = buttonText
+    }
+});
+
+socket.on("connect", () => {
+    console.log("Socket connected for gameId:", gameId);
+    loadPlayers();
+});

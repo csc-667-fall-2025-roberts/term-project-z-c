@@ -4,59 +4,61 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>UNO Lobby</title>
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <script type="module" src="/js/chat.js"></script>
+    <link rel="stylesheet" href="/css/lobby.css">
     <script type="module" src="/js/lobby.js"></script>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <script type="module" src="/js/chat.js"></script>
   </head>
-  <body class="min-h-screen bg-gradient-to-br from-[#1a1a2e] to-[#16213e] font-sans p-5">
-    <div class="max-w-7xl mx-auto space-y-6">
-      <!-- Header -->
-      <div class="bg-white rounded-3xl shadow-xl p-8 flex justify-between items-center">
+  <body>
+    <div class="container">
+      <div class="header">
         <div>
-          <div class="text-3xl font-black text-gray-800 uppercase tracking-wider flex items-center gap-3">
-            🎴 UNO Online
-          </div>
-          <div class="mt-2 text-gray-600 flex items-center gap-3 text-sm">
-            <span>
-              Welcome back, <strong id="display-name-text" class="text-gray-800"><%= user.display_name || user.username %></strong> (ID: <%= user.id %>)
-            </span>
-            <button id="edit-display-name-btn" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded-full text-xs font-bold transition">✏️ Edit Name</button>
+          <div class="welcome">UNO Game Lobby</div>
+          <div class="user-info">
+            Welcome back, <strong id="display-name-text"><%= user.display_name || user.username %></strong>! (ID: <%= user.id %>)
+            <button id="edit-display-name-btn" class="edit-name-btn" title="Edit display name">Edit</button>
           </div>
         </div>
-        <a href="/auth/logout" class="bg-gradient-to-r from-red-600 to-red-700 text-white px-6 py-3 rounded-full font-bold shadow-lg hover:shadow-xl transition uppercase tracking-wider border-2 border-white">Logout</a>
+        <a href="/auth/logout" class="logout-btn">Logout</a>
       </div>
 
       <!-- Display Name Edit Modal -->
-      <div id="edit-display-name-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
-        <div class="bg-white rounded-3xl shadow-2xl p-8 w-full max-w-md">
-          <h3 class="text-2xl font-bold text-gray-800 mb-6 uppercase tracking-wide">Edit Display Name</h3>
-          <form id="edit-display-name-form" class="space-y-5">
-            <div class="flex flex-col">
-              <label for="new-display-name" class="text-sm font-bold text-gray-700 mb-2 uppercase tracking-wide">Display Name</label>
-              <input id="new-display-name" type="text" name="display_name" value="<%= user.display_name || user.username %>" placeholder="Enter your display name" maxlength="50" required class="px-4 py-3 border-2 border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition" />
+      <div id="edit-display-name-modal" class="modal" style="display: none;">
+        <div class="modal-content">
+          <h3>Edit Display Name</h3>
+          <form id="edit-display-name-form">
+            <div class="form-group">
+              <label for="new-display-name">Display Name</label>
+              <input 
+                type="text" 
+                id="new-display-name" 
+                name="display_name" 
+                value="<%= user.display_name || user.username %>" 
+                placeholder="Enter your display name" 
+                maxlength="50"
+                required 
+              />
             </div>
-            <div class="flex gap-3">
-              <button type="submit" class="flex-1 bg-gradient-to-r from-blue-600 to-blue-700 text-white px-5 py-3 rounded-full font-bold hover:shadow-lg transition uppercase">Save</button>
-              <button type="button" id="cancel-edit-btn" class="flex-1 bg-gray-200 text-gray-700 px-5 py-3 rounded-full font-bold hover:bg-gray-300 transition uppercase">Cancel</button>
+            <div class="modal-actions">
+              <button type="submit" class="save-btn">Save</button>
+              <button type="button" id="cancel-edit-btn" class="cancel-btn">Cancel</button>
             </div>
           </form>
         </div>
       </div>
 
-      <!-- Games Section -->
-      <div class="bg-white rounded-3xl shadow-xl p-8 space-y-6">
-        <h2 class="text-2xl font-black text-gray-800 uppercase tracking-wider">🎲 Available Games</h2>
-        <div id="game-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
-
-        <form action="/games" method="POST" class="bg-gray-50 p-6 rounded-2xl border-2 border-gray-200 max-w-md mx-auto space-y-5">
-          <div class="flex flex-col">
-            <label for="game-name" class="text-sm font-bold text-gray-700 mb-2 uppercase tracking-wide">Game Name</label>
-            <input type="text" id="game-name" name="name" placeholder="My Awesome Game" required class="px-4 py-3 border-2 border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 transition" />
+      <div class="main-content">
+      <div class="games-section">
+        <h2 class="games-title">Available Games</h2>
+        <div id="game-list"></div>
+        <h3 class="create-game-title">Create a New Game</h3>
+        <form action="/games" method="POST" class="create-game-form">
+          <div class="form-group">
+            <label for="game-name">Game Name</label>
+            <input type="text" id="game-name" name="name" placeholder="My Awesome Game" required />
           </div>
-          <div class="flex flex-col">
-            <label for="max-players" class="text-sm font-bold text-gray-700 mb-2 uppercase tracking-wide">Max Players</label>
-            <select id="max-players" name="max_players" required class="px-4 py-3 border-2 border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 transition">
+          <div class="form-group">
+            <label for="max-players">Max Players</label>
+            <select id="max-players" name="max_players" required>
               <option value="2">2 Players</option>
               <option value="3">3 Players</option>
               <option value="4" selected>4 Players</option>
@@ -66,47 +68,49 @@
               <option value="8">8 Players</option>
             </select>
           </div>
-          <button type="submit" class="w-full bg-gradient-to-r from-green-500 to-green-600 text-white px-5 py-4 rounded-full font-bold shadow-lg hover:shadow-xl transition uppercase tracking-wider border-2 border-white">+ Create New Game</button>
+          <button type="submit" class="create-game-btn">+ Create New Game</button>
         </form>
       </div>
 
-      <!-- Chat Section -->
-      <div id="chat-area" class="bg-white rounded-3xl shadow-xl p-8 max-w-3xl mx-auto space-y-6">
-        <h2 class="text-2xl font-black text-gray-800 uppercase tracking-wider">💬 Game Chat</h2>
-        <div id="message-listing" class="flex flex-col gap-3 p-4 max-h-96 overflow-y-auto bg-gray-50 rounded-2xl border-2 border-gray-200"></div>
-        <div id="message-submit" class="flex gap-3">
-          <input type="text" placeholder="Type your message here..." class="flex-1 px-4 py-3 border-2 border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition" />
-          <button class="px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-full font-bold shadow-lg hover:shadow-xl transition uppercase">Send</button>
+      <div id="chat-area">
+        <h2 class="chat-title">Game Chat</h2>
+        <div id="message-listing"></div>
+        <div id="message-submit">
+          <input type="text" placeholder="Type your message here..." />
+          <button>Send</button>
         </div>
       </div>
     </div>
+  </div>
 
-    <!-- Templates -->
     <template id="template-chat-message">
-      <div class="bg-white p-4 rounded-xl shadow-sm border-l-4 border-blue-500 hover:translate-x-1 transition transform">
-        <div class="flex justify-between mb-2 text-sm font-bold text-blue-600 uppercase tracking-wide">
+      <div class="chat-message">
+        <div class="message-header">
           <span class="message-username"></span>
-          <span class="message-time text-gray-400 text-xs italic normal-case"></span>
+          <span class="message-time"></span>
         </div>
-        <div class="message-text text-gray-700 text-sm"></div>
+        <div class="message-text"></div>
       </div>
     </template>
 
     <template id="game-listing-template">
-      <div class="bg-gray-50 border-2 border-gray-200 rounded-2xl p-5 hover:border-red-500 hover:shadow-lg transition transform hover:-translate-y-1">
-        <div class="flex justify-between mb-3">
-          <span class="game-name font-black text-gray-800 text-lg"></span>
-          <span class="game-state text-xs font-bold uppercase bg-red-600 text-white px-3 py-1 rounded-full"></span>
+      <div class="game-item">
+        <div class="game-header">
+          <span class="game-name"></span>
+          <span class="game-state"></span>
         </div>
-        <div class="text-gray-600 text-sm space-y-1">
-          <div><strong class="text-gray-800">Game ID:</strong> <span class="game-id"></span></div>
-          <div><strong class="text-gray-800">Created by:</strong> <span class="game-created-by"></span></div>
-          <div><strong class="text-gray-800">Max Players:</strong> <span class="max-players"></span></div>
-          <div><strong class="text-gray-800">Created:</strong> <span class="created-at"></span></div>
+        <div class="game-details">
+          <div><strong>Game ID:</strong> <span class="game-id"></span></div>
+          <div><strong>Created by:</strong> <span class="game-created-by"></span></div>
+          <div><strong>Players:</strong> <span class="max-players"></span></div>
+          <div><strong>Created:</strong> <span class="created-at"></span></div>
         </div>
-        <a href="#" class="mt-4 block text-center bg-gradient-to-r from-red-600 to-red-700 text-white py-3 rounded-full font-bold shadow-md hover:shadow-lg transition uppercase tracking-wider border-2 border-white">Go to Game</a>
+                <a href="#" class="goto-game-btn">Go to Game</a>
       </div>
     </template>
+
+
+
 
     <script>
       // Display Name Edit Modal
@@ -117,33 +121,38 @@
       const displayNameText = document.getElementById('display-name-text');
 
       editBtn.addEventListener('click', () => {
-        modal.classList.remove('hidden');
+        modal.style.display = 'flex';
       });
 
       cancelBtn.addEventListener('click', () => {
-        modal.classList.add('hidden');
+        modal.style.display = 'none';
       });
 
       modal.addEventListener('click', (e) => {
         if (e.target === modal) {
-          modal.classList.add('hidden');
+          modal.style.display = 'none';
         }
       });
 
       form.addEventListener('submit', async (e) => {
         e.preventDefault();
+        
         const formData = new FormData(form);
         const displayName = formData.get('display_name');
+
         try {
           const response = await fetch('/lobby/update-display-name', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: {
+              'Content-Type': 'application/json',
+            },
             body: JSON.stringify({ display_name: displayName }),
             credentials: 'include',
           });
+
           if (response.ok) {
             displayNameText.textContent = displayName;
-            modal.classList.add('hidden');
+            modal.style.display = 'none';
           } else {
             alert('Failed to update display name');
           }

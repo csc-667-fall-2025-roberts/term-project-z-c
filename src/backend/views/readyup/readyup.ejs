@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="/css/readyup.css" />
+    <script type="module" src="/js/readyup.js"></script>
+</head>
+
+<body>
+    <input type="hidden" id="game-id" value="<%= id %>" />
+    
+    <!-- Welcome / Game Info -->
+    <div class="welcome-container">
+        <h1>Welcome to Game <%= id %>
+        </h1>
+        <div class="header">
+            <div>
+                <div class="game-info">
+                    <%= name %> with max players <%= capacity %>, created at
+                            <%= (new Date(created_at)).toLocaleDateString() %> by
+                                <%= host_username %>
+                </div>
+            </div>
+            <a href="/lobby" class="back-btn">Return to Lobby</a>
+        </div>
+    </div>
+    <!-- Main Ready Container -->
+    <div class="ready-container">
+        <!-- Players Grid -->
+        <div class="players-grid" id="playersGrid">
+            <!-- Players will be dynamically inserted here -->
+        </div>
+
+        <!-- Ready Status Summary -->
+        <div class="ready-summary">
+            <div class="ready-count">
+                <span id="readyCount">0</span> / <span id="totalPlayers"><%= capacity %></span> Players Ready
+            </div>
+            <div class="ready-progress-bar">
+                <div class="ready-progress-fill" id="progressFill" style="width: 0%;"></div>
+            </div>
+        </div>
+
+        <!-- Ready Button -->
+        <div class="ready-button-container">
+            <button id="readyButton" class="ready-btn">
+                <span class="btn-text">I'm Ready!</span>
+            </button>
+            <button id="startGameButton" class="start-game-btn" style="display: none;">
+                <span class="btn-text">Start Game</span>
+            </button>
+        </div>
+    </div>
+</body>
+
+</html>

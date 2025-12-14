@@ -12,15 +12,15 @@ const createGameElement = (game: Game) => {
 
   gameItem.querySelector(".game-id")!.textContent = `${game.id}`;
   gameItem.querySelector(".game-name")!.textContent = game.name ?? `Game ${game.id}`;
-  gameItem.querySelector(".game-created-by")!.textContent = `${game.created_by}`;
+  gameItem.querySelector(".game-created-by")!.textContent = game.host_username || `User ${game.host_id}`;
   gameItem.querySelector(".game-state")!.textContent = game.state;
-  gameItem.querySelector(".max-players")!.textContent = `${game.max_players}`;
+  gameItem.querySelector(".max-players")!.textContent = `${game.player_count || 0}/${game.capacity}`;
   gameItem.querySelector(".created-at")!.textContent = new Date(
     game.created_at,
   ).toLocaleDateString();
 
   const goToGameBtn = gameItem.querySelector(".goto-game-btn") as HTMLAnchorElement;
-  goToGameBtn.href = `/games/${game.id}`;
+  goToGameBtn.href = `/readyup/${game.id}`;
 
   return gameItem;
 };
