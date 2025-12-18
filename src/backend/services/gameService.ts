@@ -6,17 +6,15 @@ import { GameState } from "../../types/types";
 
 const Cards_Per_Player = 7;
 
-
 //fisher-yates shuffle
 function shuffle<T>(array: T[]): T[] {
   const result = [...array];
   for (let i = result.length - 1; i > 0; i--){
     const j = Math.floor(Math.random() * (i + 1));
     [result[i], result[j]] = [result[j], result[i]];
-    }
-  
-return result; 
   }
+  return result; 
+}
 
 export async function StartGame(gameId: number): Promise<{firstPlayerId: number}> {
   const game = await Games.get(gameId);
@@ -28,7 +26,7 @@ export async function StartGame(gameId: number): Promise<{firstPlayerId: number}
   const players = await Games.getPlayers(gameId);
 
   if(players.length < 2){
-    throw new Error("Not enough players ");
+    throw new Error("Not enough players");
   }
 
   const playerIds = players.map((p: GamePlayer) => p.user_id);
@@ -75,43 +73,38 @@ export async function StartGame(gameId: number): Promise<{firstPlayerId: number}
   return {firstPlayerId: shuffledPlayers[0]};
 }
 
-export async function getCurrentTurn (gameId : number ) : Promise<{
-currentPlayerId: number;
-playerOrder : number;
-direction: number; 
-}> 
-{
-const players = await Games.getPlayers(gameId);
-const moveCount = await Moves.getMoveCount(gameId);
-const direction = await Moves.getTurnDirection(gameId);
+export async function getCurrentTurn(gameId: number): Promise<{
+  currentPlayerId: number;
+  playerOrder: number;
+  direction: number; 
+}> {
+  const players = await Games.getPlayers(gameId);
+  const moveCount = await Moves.getMoveCount(gameId);
+  const direction = await Moves.getTurnDirection(gameId);
 
+  if (players.length === 0) {
+    throw new Error("No players in the game");
+  }
 
-if (players.length === 0) {
-  throw new Error("No players in the game");
+  const sortedPlayers = players.sort((a, b) => a.position - b.position); 
+  const playerCount = sortedPlayers.length;
 
-}
+  let currentTurnIndex = moveCount % playerCount;
 
-const sortedPlayers = players.sort((a, b) => a.position - b.position); 
-const playerCount = sortedPlayers.length;
+  if (direction === -1 && moveCount > 0) {
+    currentTurnIndex = (playerCount - currentTurnIndex) % playerCount;
+  }
 
-let currentTurnIndex = moveCount % playerCount;
+  const currentPlayer = sortedPlayers[currentTurnIndex];
 
-if ( direction === -1 && moveCount > 0) {
-  currentTurnIndex = (playerCount - currentTurnIndex) % playerCount;
-
-}
-
-const currentPlayerId = sortedPlayers[currentTurnIndex]
-
-return {
-  currentPlayerId: currentPlayerId.user_id, playerOrder: currentPlayerId.position, direction
-}
-
+  return {
+    currentPlayerId: currentPlayer.user_id, 
+    playerOrder: currentPlayer.position, 
+    direction
+  };
 }
 
 export async function endGame(gameId: number, winnerId?: number): Promise<void> {
-
-
   const game = await Games.get(gameId);
 
   if(game.state === GameState.ENDED){

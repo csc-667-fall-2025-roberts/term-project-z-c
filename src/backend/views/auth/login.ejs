@@ -1,36 +1,195 @@
 <!DOCTYPE html>
 <html lang="en">
   <head>
-    <title></title>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Log In</title>
+    <title>Log In - UNO Online</title>
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <link rel="stylesheet" href="/css/login.css">
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka+One:wght@400&family=Roboto:wght@500;700&display=swap" rel="stylesheet">
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: 'Roboto', sans-serif;
+        height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: linear-gradient(135deg, #1976d2, #42a5f5, #90caf9);
+        background-color: #2196f3;
+        color: #333;
+        padding: 20px;
+        min-height: 100dvh;
+      }
+
+      .login-container {
+        width: 100%;
+        max-width: 500px;
+        text-align: center;
+      }
+
+      .logo img {
+        width: 100%;
+        max-width: 400px;
+        height: auto;
+        margin-bottom: 20px;
+        border-radius: 12px;
+      }
+
+      h1 {
+        font-family: 'Fredoka One', cursive;
+        font-size: 4rem;
+        margin-bottom: 40px;
+        color: white;
+        text-shadow: 2px 2px 8px rgba(0, 0, 0, 0.5);
+      }
+
+      .form-card {
+        background: rgba(255, 255, 255, 0.95);
+        padding: 40px;
+        border-radius: 20px;
+        box-shadow: 0 8px 30px rgba(0, 0, 0, 0.2);
+      }
+
+      .error {
+        background: rgba(244, 67, 54, 0.2);
+        color: #d32f2f;
+        padding: 12px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+        font-weight: bold;
+      }
+
+      .field {
+        margin-bottom: 20px;
+        text-align: left;
+      }
+
+      label {
+        display: block;
+        margin-bottom: 8px;
+        font-weight: 700;
+        font-size: 1.1rem;
+        color: #333;
+      }
+
+      input {
+        width: 100%;
+        padding: 14px;
+        border: 1px solid #ddd;
+        border-radius: 12px;
+        background: white;
+        color: #333;
+        font-size: 1.1rem;
+      }
+
+      input:focus {
+        outline: none;
+        border-color: #42a5f5;
+        box-shadow: 0 0 0 3px rgba(66, 165, 245, 0.3);
+      }
+
+      .actions {
+        margin-top: 30px;
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+        align-items: center;
+      }
+
+      button[type="submit"] {
+        width: 80%;
+        max-width: 300px;
+        padding: 16px 0;
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: white;
+        background: #1976d2;
+        border: none;
+        border-radius: 12px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+      }
+
+      button[type="submit"]:hover {
+        background: #1565c0;
+        transform: scale(1.05);
+      }
+
+      .signup-text {
+        font-size: 1.1rem;
+        color: #555;
+      }
+
+      .signup-link {
+        color: #1976d2;
+        text-decoration: underline;
+        font-weight: 700;
+        transition: color 0.3s ease;
+      }
+
+      .signup-link:hover {
+        color: #1565c0;
+      }
+
+      .back-link {
+        color: #555;
+        text-decoration: none;
+        font-weight: 700;
+        font-size: 1.2rem;
+        transition: color 0.3s ease;
+      }
+
+      .back-link:hover {
+        color: #1976d2;
+      }
+
+      @media (min-width: 600px) {
+        h1 { font-size: 5rem; }
+      }
+
+      @media (max-width: 400px) {
+        h1 { font-size: 3.2rem; }
+        .form-card { padding: 30px; }
+        button[type="submit"] { font-size: 1.3rem; }
+      }
+    </style>
   </head>
   <body>
-    <div class="login-card" role="main">
+    <div class="login-container">
       <h1>Log In</h1>
-      <form method="post" action="/auth/login">
-        <% if(locals.error) { %>
-        <p class="error"><%= locals.error %></p>
-        <% } %>
 
-        <div class="field">
-          <label for="username">Username</label>
-          <input id="username" type="text" name="username" />
-        </div>
+      <div class="form-card">
+        <form method="post" action="/auth/login">
+          <% if(locals.error) { %>
+          <p class="error"><%= locals.error %></p>
+          <% } %>
 
-        <div class="field">
-          <label for="password">Password</label>
-          <input id="password" type="password" name="password" />
-        </div>
+          <div class="field">
+            <label for="username">Username</label>
+            <input id="username" type="text" name="username" required />
+          </div>
 
-        <div class="actions">
-          <button type="submit">Login</button>
-          <a class="signup-link" href="/auth/signup">Create an account</a>
-        </div>
-      </form>
+          <div class="field">
+            <label for="password">Password</label>
+            <input id="password" type="password" name="password" required />
+          </div>
+
+          <div class="actions">
+            <button type="submit">Login</button>
+
+            <p class="signup-text">
+              Don't have an account? <a href="/auth/signup" class="signup-link">Sign Up Here</a>
+            </p>
+
+            <a href="/" class="back-link">← Back to Home</a>
+          </div>
+        </form>
+      </div>
     </div>
   </body>
 </html>
