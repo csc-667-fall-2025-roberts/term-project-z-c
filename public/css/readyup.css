@@ -548,3 +548,46 @@ body {
     font-size: 11px;
   }
 }
+
+.game-chat-container {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  width: 320px;
+  max-height: 400px;
+  background: rgba(255, 255, 255, 0.92);
+  border-radius: 16px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  z-index: 50;
+  border: 3px solid rgba(0, 0, 0, 0.15);
+}
+
+
+@media (max-width: 900px), (max-height: 750px) {
+  .game-chat-container {
+    position: static;              
+    width: 100%;
+    max-width: 600px;
+    margin: 1rem auto 0 auto;      
+    border-radius: 16px;
+  }
+
+  .ready-container {
+    max-width: 1000px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+}
+
+@media (max-height: 580px) and (min-width: 901px) {
+  .game-chat-container {
+    top: 10px;
+    bottom: auto;
+    right: 10px;
+  }
+}
