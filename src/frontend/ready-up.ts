@@ -21,6 +21,18 @@ const gameChatInput = document.querySelector<HTMLInputElement>("#game-message-su
 const gameChatButton = document.querySelector<HTMLButtonElement>("#game-message-submit button")!;
 const gameChatTemplate = document.querySelector<HTMLTemplateElement>("#template-game-chat-message")!;
 
+const cancelLobbyButton = document.querySelector<HTMLButtonElement>("#cancelLobbyButton")!;
+const cancelHelpText = document.querySelector<HTMLParagraphElement>("#cancelHelpText")!;
+const cancelModal = document.querySelector<HTMLDivElement>("#cancelLobbyModal")!;
+const cancelConfirm = document.querySelector<HTMLButtonElement>("#cancelLobbyConfirm")!;
+const cancelDismiss = document.querySelector<HTMLButtonElement>("#cancelLobbyDismiss")!;
+const gameNameInput = document.querySelector<HTMLInputElement>("#game-name")!;
+const modalGameName = document.querySelector<HTMLElement>("#modal-game-name");
+
+if (modalGameName && gameNameInput) {
+    modalGameName.textContent = gameNameInput.value || "this lobby";
+}
+
 const loadPlayers = async () => {
     const response = await fetch(`/readyup/${gameId}/players`, { method: "get", credentials: "include" });
     const data = await response.json();
@@ -28,6 +40,8 @@ const loadPlayers = async () => {
     players = data.players;
     currentUserId = data.currentUserId;
     capacity = data.capacity;
+
+    console.log("Loaded players:", players, "Current user ID:", currentUserId, "Capacity:", capacity);
 
     renderedPlayers();
     updateReadyStatus();
@@ -86,7 +100,10 @@ const updateReadyStatus = () => {
     const me = players.find((p) => p.user_id === currentUserId);
     const isHost = me?.position === 1;
 
+    console.log("updateReadyStatus: me =", me, "currentUserId =", currentUserId);
+
     if (me) {
+        console.log("updateReaadyStatus: me.is_ready =", me.is_ready);
         if (me.is_ready) {
             readyButton.classList.add("ready");
             readyButton.querySelector(".btn-text")!.textContent = "Not Ready";
@@ -96,9 +113,12 @@ const updateReadyStatus = () => {
         }
     }
 
-    // Show start game button if: host + at least 2 players ready (including host)
     const canStartGame = isHost && readyCount >= 2 && players.length >= 2;
     startGameButton.style.display = canStartGame ? "block" : "none";
+    cancelLobbyButton.style.display = isHost ? "inline-flex" : "none";
+    if (cancelHelpText) {
+        cancelHelpText.style.display = isHost ? "block" : "none";
+    }
 };
 
 const appendGameMessage = ({ username, created_at, message, user_id }: ChatMessage) => {
@@ -150,13 +170,11 @@ const loadGameChat = async () => {
 
 socket.on(EVENTS.PLAYER_JOINED, (data: { gameId: number; userId: number; username: string }) => {
     console.log(EVENTS.PLAYER_JOINED, data);
-
     loadPlayers();
 });
 
 socket.on(EVENTS.PLAYER_LEFT, (data: { gameId: number; userId: number; username: string }) => {
     console.log(EVENTS.PLAYER_LEFT, data);
-
     loadPlayers();
 });
 
@@ -173,7 +191,6 @@ socket.on(EVENTS.PLAYER_READY, (data: { gameId: number; userId: number; isReady:
 
 socket.on(EVENTS.GAME_START, (data: { gameId: number; starterId: number; topCard: any }) => {
     console.log("Received GAME_START event:", EVENTS.GAME_START, data);
-
     window.location.href = `/games/${gameId}`;
 });
 
@@ -182,23 +199,47 @@ socket.on(EVENTS.GAME_CHAT_MESSAGE, (message: ChatMessage) => {
     appendGameMessage(message);
 });
 
-const toggleReady = () => {
-    fetch(`/readyup/${gameId}/toggle`, {
-        method: "post",
-        credentials: "include",
-    });
+socket.on(EVENTS.GAME_LOBBY_CANCELLED, ({ gameId: cancelledGameId }: { gameId: number }) => {
+    console.log("Lobby cancelled:", cancelledGameId);
+    alert("The host has cancelled the lobby. You'll be returned to the lobby.");
+    window.location.href = "/lobby";
+});
+
+const toggleReady = async () => {
+    try {
+        const response = await fetch(`/readyup/${gameId}/toggle`, {
+            method: "post",
+            credentials: "include",
+        });
+
+        if(!response.ok) {
+            throw new Error(`Failed to toggle ready status: ${response.statusText}`);
+        }
+
+        const data = await response.json();
+        console.log("Toggled ready status:", data.isReady);
+
+        const  me = players.find((p) => p.user_id === currentUserId);
+        if (me) {
+            me.is_ready = data.isReady;
+            renderedPlayers();
+            updateReadyStatus();
+        } 
+    }
+    catch (error) {
+        console.error("Error toggling ready status:", error);
+    }
 };
 
-readyButton.addEventListener("click", (event) => {
+readyButton.addEventListener("click", async (event) => {
     event.preventDefault();
-
     toggleReady();
 });
 
 startGameButton.addEventListener("click", async (event) => {
     event.preventDefault();
 
-    disableButtor("Starting...");
+    disableButton("Starting...");
 
     try {
         const response = await fetch(`/games/${gameId}/start`, {
@@ -218,7 +259,7 @@ startGameButton.addEventListener("click", async (event) => {
         enableButton("Start Game");
     }
 
-    function disableButtor(buttonText: string) {
+    function disableButton(buttonText: string) {
         startGameButton.disabled = true;
         startGameButton.querySelector(".btn-text")!.textContent = buttonText;
     }
@@ -229,6 +270,62 @@ startGameButton.addEventListener("click", async (event) => {
     }
 });
 
+/* ========== Cancel lobby modal logic ========== */
+
+const showCancelModal = () => {
+    cancelModal.style.display = "flex";
+};
+
+const hideCancelModal = () => {
+    cancelModal.style.display = "none";
+};
+
+cancelLobbyButton.addEventListener("click", (event) => {
+    event.preventDefault();
+    showCancelModal();
+});
+
+cancelDismiss.addEventListener("click", (event) => {
+    event.preventDefault();
+    hideCancelModal();
+});
+
+cancelModal.addEventListener("click", (event) => {
+    if (event.target === cancelModal) {
+        hideCancelModal();
+    }
+});
+
+cancelConfirm.addEventListener("click", async (event) => {
+    event.preventDefault();
+
+    cancelConfirm.disabled = true;
+    cancelConfirm.textContent = "Cancelling…";
+
+    try {
+        const response = await fetch(`/games/${gameId}/cancel`, {
+            method: "post",
+            credentials: "include",
+        });
+
+        if (response.ok) {
+            window.location.href = "/lobby";
+            return;
+        }
+
+        alert("Failed to cancel lobby.");
+    } catch (error) {
+        console.error("Error cancelling lobby:", error);
+        alert("Error cancelling lobby.");
+    } finally {
+        cancelConfirm.disabled = false;
+        cancelConfirm.textContent = "Yes, cancel lobby";
+        hideCancelModal();
+    }
+});
+
+/* ========== Game chat events ========== */
+
 gameChatButton.addEventListener("click", (event) => {
     event.preventDefault();
     sendGameMessage();
@@ -236,13 +333,11 @@ gameChatButton.addEventListener("click", (event) => {
 
 gameChatInput.addEventListener("keydown", (event) => {
     if (event.key === "Enter") {
+        event.preventDefault();
         sendGameMessage();
     }
 });
 
-socket.on("connect", () => {
-    console.log("Socket connected for gameId:", gameId);
-    socket.emit("JOIN_GAME_ROOM", { gameId });
-    loadPlayers();
-    loadGameChat();
-});
+// Initial load
+loadPlayers();
+loadGameChat();

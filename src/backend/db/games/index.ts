@@ -1,7 +1,22 @@
 import type { Game, GamePlayer } from "../../../types/types";
 import { GameState } from "../../../types/types";
 import db from "../connection";
-import {CREATE_GAME, GAME_BY_ID, GAMES_BY_USER, JOIN_GAME, LIST_GAMES, GET_PLAYERS, SET_PLAYER_POSITION, START_GAME, UPDATE_GAME, LEAVE_GAME, GET_PLAYER_COUNT,CHECK_PLAYER_IN_GAME, TOGGLE_PLAYER_READY, GET_CURRENT_TURN_PLAYER
+import {
+  CREATE_GAME,
+  GAME_BY_ID,
+  GAMES_BY_USER,
+  JOIN_GAME,
+  LIST_GAMES,
+  GET_PLAYERS,
+  SET_PLAYER_POSITION,
+  START_GAME,
+  UPDATE_GAME,
+  LEAVE_GAME,
+  GET_PLAYER_COUNT,
+  CHECK_PLAYER_IN_GAME,
+  TOGGLE_PLAYER_READY,
+  GET_CURRENT_TURN_PLAYER,
+  DELETE_GAME,           // <-- added
 } from "./sql";
 
 const create = async (user_id: number, name?: string, capacity: number = 4) =>
@@ -26,7 +41,7 @@ const setPlayerPosition = async (game_id: number, player_order: number, user_id:
   await db.none(SET_PLAYER_POSITION, [game_id, player_order, user_id]);
 
 const startGame = async (game_id: number) =>
-  await db.none(START_GAME, [game_id],); // add active?
+  await db.none(START_GAME, [game_id]); // add active?
 
 const updateGame = async (game_id: number, state?: GameState, winner_id?: number, is_ready?: boolean) =>
   await db.one<Game>(UPDATE_GAME, [game_id, state, winner_id, is_ready]);
@@ -49,14 +64,30 @@ const togglePlayerReady = async (game_id: number, user_id: number) => {
   return result.is_ready;
 };
 
-const getCurrentPlayer= async (game_id: number) => {
+const getCurrentPlayer = async (game_id: number) => {
   const result = await db.one<{ user_id: number; player_order: number }>(GET_CURRENT_TURN_PLAYER, [game_id]);
   return result;
 };
 
-export {create,get,getByUser,join,list,getPlayers,setPlayerPosition,startGame,updateGame,leaveGame,
+// NEW: deleteGame
+const deleteGame = async (game_id: number) => {
+  await db.none(DELETE_GAME, [game_id]);
+};
+
+export {
+  create,
+  get,
+  getByUser,
+  join,
+  list,
+  getPlayers,
+  setPlayerPosition,
+  startGame,
+  updateGame,
+  leaveGame,
   getPlayerCount,
   checkPlayerInGame,
   togglePlayerReady,
   getCurrentPlayer,
+  deleteGame,     // <-- added export
 };

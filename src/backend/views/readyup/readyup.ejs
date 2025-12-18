@@ -1,67 +1,86 @@
-<!DOCTYPE html>
-<html lang="en">
-
-<head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <link rel="stylesheet" href="/css/readyup.css" />
-    <script type="module" src="/js/readyup.js"></script>
-    
-</head>
-
 <body>
     <input type="hidden" id="game-id" value="<%= id %>" />
-    
-    <!-- Welcome / Game Info -->
-    <div class="welcome-container">
-        <h1>Welcome to Game <%= id %></h1>
-        <div class="header">
-            <div>
-                <div class="game-info">
-                    <%= name %> with max players <%= capacity %>, created at
-                            <%= (new Date(created_at)).toLocaleDateString() %> by
-                                <%= host_username %>
+    <input type="hidden" id="game-name" value="<%= name %>" />
+
+    <div class="main-content-wrapper">
+        <!-- Welcome / Game Info -->
+        <div class="welcome-container">
+            <h1>Welcome to Game <%= id %></h1>
+            <div class="header">
+                <div>
+                    <div class="game-info">
+                        <%= name %> with max players <%= capacity %>, created at
+                                <%= (new Date(created_at)).toLocaleDateString() %> by
+                                    <%= host_username %>
+                    </div>
+                </div>
+                <a href="/lobby" class="back-btn">Return to Lobby</a>
+            </div>
+        </div>
+
+        <!-- Main Ready Container -->
+        <div class="ready-container">
+            <!-- Players Grid -->
+            <div class="players-grid" id="playersGrid">
+                <!-- Players will be dynamically inserted here -->
+            </div>
+
+            <!-- Ready Status Summary -->
+            <div class="ready-summary">
+                <div class="ready-count">
+                    <span id="readyCount">0</span> / <span id="totalPlayers"><%= capacity %></span> Players Ready
+                </div>
+                <div class="ready-progress-bar">
+                    <div class="ready-progress-fill" id="progressFill" style="width: 0%;"></div>
                 </div>
             </div>
-            <a href="/lobby" class="back-btn">Return to Lobby</a>
+
+            <!-- Ready Button -->
+            <div class="ready-button-container">
+                <button id="readyButton" class="ready-btn">
+                    <span class="btn-text">I'm Ready!</span>
+                </button>
+                <button id="cancelLobbyButton" class="cancel-lobby-btn" style="display: none;">
+                    <span class="btn-text">Cancel Lobby</span>
+                </button>
+                <button id="startGameButton" class="start-game-btn" style="display: none;">
+                    <span class="btn-text">Start Game</span>
+                </button>
+            </div>
+            <p class="cancel-help-text" id="cancelHelpText" style="display:none;">
+                Need to restart? You can safely cancel this lobby and create a fresh one.
+            </p>
+        </div>
+
+        <!-- Game Chat Window -->
+        <div id="game-chat-area" class="game-chat-section"> <!-- Changed ID to game-chat-section -->
+            <div class="game-chat-container">
+                <h3 class="chat-title">Game Chat</h3>
+                <div id="game-message-listing" class="chat-messages"></div>
+                <div id="game-message-submit" class="chat-input-area">
+                    <input type="text" placeholder="Type your message..." />
+                    <button type="button">Send</button>
+                </div>
+            </div>
         </div>
     </div>
 
-    <!-- Main Ready Container -->
-    <div class="ready-container">
-        <!-- Players Grid -->
-        <div class="players-grid" id="playersGrid">
-            <!-- Players will be dynamically inserted here -->
-        </div>
-
-        <!-- Ready Status Summary -->
-        <div class="ready-summary">
-            <div class="ready-count">
-                <span id="readyCount">0</span> / <span id="totalPlayers"><%= capacity %></span> Players Ready
+    <!-- Cancel Lobby Modal -->
+    <div id="cancelLobbyModal" class="modal-backdrop" style="display: none;">
+        <div class="modal">
+            <h2 class="modal-title">Cancel this lobby?</h2>
+            <p class="modal-text">
+                This will close <strong id="modal-game-name"></strong> for everyone and
+                send all players back to the lobby. This action can't be undone.
+            </p>
+            <div class="modal-actions">
+                <button id="cancelLobbyConfirm" class="modal-danger-btn">
+                    Yes, cancel lobby
+                </button>
+                <button id="cancelLobbyDismiss" class="modal-secondary-btn">
+                    Keep lobby open
+                </button>
             </div>
-            <div class="ready-progress-bar">
-                <div class="ready-progress-fill" id="progressFill" style="width: 0%;"></div>
-            </div>
-        </div>
-
-        <!-- Ready Button -->
-        <div class="ready-button-container">
-            <button id="readyButton" class="ready-btn">
-                <span class="btn-text">I'm Ready!</span>
-            </button>
-            <button id="startGameButton" class="start-game-btn" style="display: none;">
-                <span class="btn-text">Start Game</span>
-            </button>
-        </div>
-    </div>
-
-    <!-- Game Chat Window -->
-    <div id="game-chat-area" class="game-chat-container">
-        <h3 class="chat-title">Game Chat</h3>
-        <div id="game-message-listing" class="chat-messages"></div>
-        <div id="game-message-submit" class="chat-input-area">
-            <input type="text" placeholder="Type your message..." />
-            <button type="button">Send</button>
         </div>
     </div>
 
@@ -76,5 +95,3 @@
         </div>
     </template>
 </body>
-
-</html>

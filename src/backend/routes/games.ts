@@ -1,6 +1,6 @@
 import express from "express";
 import { Server } from "socket.io";
-import { GAME_CREATE,GAME_LISTING } from "../../shared/keys";
+import { GAME_CREATE, GAME_LISTING, GAME_LOBBY_CANCELLED } from "../../shared/keys";
 import { Games, Cards } from "../db";
 import logger from "../lib/logger";
 import { StartGame, getCurrentTurn, endGame } from "../services/gameService";
@@ -10,8 +10,6 @@ import { broadcastTurnChange, broadcastCardPlay, broadcastDraw, broadcastHandUpd
 import { GameState } from "../../types/types";
 
 const router = express.Router();
-
-
 
 router.get("/", async (request, response) => {
   const sessionId = request.session.id;
@@ -81,22 +79,52 @@ router.post("/:game_id/join", async (request, response) => {
   response.redirect(`/games/${game_id}`);
 });
 
-// start game route
-router.post( "/:game_id/start", async (request, response) => {
+// Cancel lobby route
+router.post("/:game_id/cancel", async (request, response) => {
   try {
-  const gameId = parseInt(request.params.game_id);
-  const result = await StartGame(gameId);
+    const gameId = parseInt(request.params.game_id);
+    const userId = request.session.user!.id;
 
-  const io = request.app.get("io") as Server;
-  const topCard = await Cards.getTopCard(gameId);
+    const game = await Games.get(gameId);
 
-  broadcastGameStateUpdate(io, gameId, GameState.IN_PROGRESS);
-  broadcastGameStart(io, gameId, result.firstPlayerId, { id: topCard!.id, color: topCard!.color, value: topCard!.value });
+    if (!game) {
+      return response.status(404).json({ error: "Game not found" });
+    }
 
-  const turnInfo = await getCurrentTurn(gameId);
-  broadcastTurnChange(io, gameId, turnInfo.currentPlayerId, turnInfo.direction, turnInfo.playerOrder);
+    if (game.host_id !== userId) {
+      return response.status(403).json({ error: "Only the host can cancel the lobby" });
+    }
 
-  response.redirect(`/games/${gameId}`);
+    await Games.deleteGame(gameId);
+
+    const io = request.app.get("io") as Server;
+    io.to(`game:${gameId}`).emit(GAME_LOBBY_CANCELLED, { gameId });
+
+    logger.info(`Game ${gameId} cancelled by host ${userId}`);
+
+    response.status(200).json({ success: true });
+  } catch (error: any) {
+    logger.error("Error cancelling lobby:", error);
+    response.status(500).json({ error: error.message });
+  }
+});
+
+// start game route
+router.post("/:game_id/start", async (request, response) => {
+  try {
+    const gameId = parseInt(request.params.game_id);
+    const result = await StartGame(gameId);
+
+    const io = request.app.get("io") as Server;
+    const topCard = await Cards.getTopCard(gameId);
+
+    broadcastGameStateUpdate(io, gameId, GameState.IN_PROGRESS);
+    broadcastGameStart(io, gameId, result.firstPlayerId, { id: topCard!.id, color: topCard!.color, value: topCard!.value });
+
+    const turnInfo = await getCurrentTurn(gameId);
+    broadcastTurnChange(io, gameId, turnInfo.currentPlayerId, turnInfo.direction, turnInfo.playerOrder);
+
+    response.redirect(`/games/${gameId}`);
   } catch (error: any) {
     logger.error("Error starting game:", error);
     response.redirect(`/games/${request.params.game_id}`);
@@ -112,10 +140,8 @@ router.get("/:game_id/turn", async (request, response) => {
   } catch (error: any) {
     logger.error("Error getting current Turns:", error);
     response.status(500).json({ error: error.message});
-
   }
 });
-
 
 router.post("/:game_id/end", async (request, response) => {
   try {

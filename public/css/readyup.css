@@ -1,8 +1,34 @@
-.welcome-container {
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  background: radial-gradient(circle,
+      rgba(255, 221, 0, 1) 0%,
+      rgba(247, 154, 5, 1) 29%,
+      rgba(240, 12, 12, 1) 100%);
+  min-height: 100vh;
+  padding: 20px;
+  overflow-x: hidden;
+}
+
+/* Wrapper for the main game content */
+.main-content-wrapper {
   max-width: 1200px;
   width: 100%;
-  margin: 0 auto 20px auto;
-  padding: 10px 20px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.welcome-container {
+  width: 100%;
+  margin: 0 auto;
+  padding: 10px 0;
 }
 
 .welcome-container h1 {
@@ -11,6 +37,7 @@
   color: #ffffff;
   margin-bottom: 12px;
   text-shadow: 3px 2px 0px black;
+  text-align: center;
 }
 
 .game-info {
@@ -46,36 +73,28 @@
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.25);
 }
 
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-}
-
-body {
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-  background: radial-gradient(circle,
-      rgba(255, 221, 0, 1) 0%,
-      rgba(247, 154, 5, 1) 29%,
-      rgba(240, 12, 12, 1) 100%);
-  min-height: 100vh;
-  padding: 20px;
-  overflow-x: hidden;
-}
-
 .ready-container {
-  max-width: 1000px;
+  width: 100%;
   margin: 0 auto;
   display: flex;
   flex-direction: column;
   gap: 2rem;
 }
 
-/* PLAYER GRID */
+/* PLAYER GRID - max 4 columns, centered */
 .players-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  max-width: 960px;
+  margin: 0 auto;
   gap: 1.5rem;
+}
+
+/* On very wide screens, explicitly clamp to 4 columns max */
+@media (min-width: 1200px) {
+  .players-grid {
+    grid-template-columns: repeat(4, minmax(220px, 1fr));
+  }
 }
 
 /* PLAYER CARD */
@@ -101,7 +120,7 @@ body {
 .player-card.current-user.ready,
 .player-card.ready {
   border-color: #22c55e;
-  background: rgb(217, 255, 231)
+  background: rgb(217, 255, 231);
 }
 
 .player-card.current-user {
@@ -196,7 +215,7 @@ body {
   transition: all 0.3s;
 }
 
-/* waiting dots animation*/
+/* waiting dots animation */
 .dot {
   width: 10px;
   height: 10px;
@@ -257,6 +276,9 @@ body {
   padding: 1.5rem 2rem;
   border-radius: 16px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  max-width: 960px;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 .ready-count {
@@ -283,27 +305,45 @@ body {
   box-shadow: 0 0 10px rgba(34, 197, 94, 0.5);
 }
 
-/* READY BUTTON */
+/* READY BUTTON CONTAINER */
 .ready-button-container {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
+  justify-content: center;
   align-items: center;
-  gap: 1rem;
+  gap: 16px;
+  margin-top: 24px;
+  flex-wrap: wrap;
+  max-width: 960px;
+  margin-left: auto;
+  margin-right: auto;
 }
 
+/* Base style for action buttons */
+.ready-btn,
+.cancel-lobby-btn,
+.start-game-btn {
+  border-radius: 20px;
+  padding: 1rem 2.5rem;
+  font-size: 1.1rem;
+  font-weight: 700;
+  border: none;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: all 0.2s ease;
+  position: relative;
+  overflow: hidden;
+  min-width: 160px;
+}
+
+/* Ready button */
 .ready-btn {
   background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
   color: white;
-  border: none;
-  padding: 1.25rem 4rem;
-  font-size: 1.5rem;
-  font-weight: bold;
-  border-radius: 20px;
-  cursor: pointer;
   box-shadow: 0 8px 20px rgba(34, 197, 94, 0.4);
-  transition: all 0.3s;
-  position: relative;
-  overflow: hidden;
 }
 
 .ready-btn::before {
@@ -338,57 +378,65 @@ body {
   box-shadow: 0 12px 28px rgba(239, 68, 68, 0.5);
 }
 
+/* Cancel Lobby button - clear and strong */
+.cancel-lobby-btn {
+  background: #ffffff;
+  color: #ef4444;
+  border: 2px solid #ef4444;
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.18);
+}
+
+.cancel-lobby-btn:hover {
+  background: rgba(239, 68, 68, 0.1);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.25);
+}
+
+/* Start Game button */
+.start-game-btn {
+  background: linear-gradient(135deg, #facc15 0%, #eab308 100%);
+  color: #4b2700;
+  box-shadow: 0 8px 20px rgba(234, 179, 8, 0.45);
+}
+
+.start-game-btn:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 28px rgba(234, 179, 8, 0.55);
+}
+
 .btn-text {
   position: relative;
   z-index: 1;
 }
 
-@media (max-width: 768px) {
-  .players-grid {
-    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-    gap: 1rem;
-  }
-
-  .avatar-circle {
-    width: 60px;
-    height: 60px;
-    font-size: 1.2rem;
-  }
-
-  .host-badge {
-    width: 28px;
-    height: 28px;
-    font-size: 1rem;
-  }
-
-  .ready-btn {
-    padding: 1rem 3rem;
-    font-size: 1.2rem;
-  }
-
-  .starting-spinner {
-    font-size: 3rem;
-  }
-
-  .game-starting-content h2 {
-    font-size: 2rem;
-  }
+/* Cancel help text */
+.cancel-help-text {
+  text-align: center;
+  font-size: 0.9rem;
+  color: rgba(255, 255, 255, 0.85);
+  margin-top: 8px;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
 }
 
 /* Game Chat Styles (UNO theme) */
-.game-chat-container {
+.game-chat-section {
   position: fixed;
   bottom: 20px;
   right: 20px;
-  width: 320px;
-  max-height: 400px;
+  width: 350px;
+  max-width: 90vw;
+  z-index: 100;
+}
+
+.game-chat-container {
+  width: 100%;
+  max-height: 450px;
   background: rgba(255, 255, 255, 0.92);
   border-radius: 16px;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  z-index: 100;
   border: 3px solid rgba(0, 0, 0, 0.15);
 }
 
@@ -529,13 +577,118 @@ body {
   margin-top: 2px;
 }
 
-/* Mobile tweaks: slightly smaller and higher */
+/* Cancel Lobby Modal */
+.modal-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.modal {
+  background: white;
+  border-radius: 16px;
+  padding: 2rem;
+  max-width: 480px;
+  width: 90%;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
+}
+
+.modal-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #1f2937;
+  margin-bottom: 1rem;
+}
+
+.modal-text {
+  font-size: 1rem;
+  color: #4b5563;
+  margin-bottom: 1.5rem;
+  line-height: 1.5;
+}
+
+.modal-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+}
+
+.modal-danger-btn,
+.modal-secondary-btn {
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  transition: all 0.2s ease;
+}
+
+.modal-danger-btn {
+  background: #ef4444;
+  color: white;
+}
+
+.modal-danger-btn:hover {
+  background: #dc2626;
+  transform: translateY(-1px);
+}
+
+.modal-secondary-btn {
+  background: #e5e7eb;
+  color: #374151;
+}
+
+.modal-secondary-btn:hover {
+  background: #d1d5db;
+}
+
+/* Responsive */
+@media (max-width: 900px) {
+  .players-grid {
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    max-width: 100%;
+    gap: 1rem;
+  }
+
+  .ready-summary,
+  .ready-button-container {
+    max-width: 100%;
+  }
+
+  .game-chat-section {
+    position: static;
+    width: 100%;
+    max-width: 600px;
+    margin: 2rem auto 0 auto;
+  }
+}
+
 @media (max-width: 768px) {
-  .game-chat-container {
-    width: 280px;
-    bottom: 16px;
-    right: 16px;
-    border-radius: 14px;
+  .avatar-circle {
+    width: 60px;
+    height: 60px;
+    font-size: 1.2rem;
+  }
+
+  .host-badge {
+    width: 28px;
+    height: 28px;
+    font-size: 1rem;
+  }
+
+  .ready-btn,
+  .cancel-lobby-btn,
+  .start-game-btn {
+    padding: 0.9rem 1.8rem;
+    font-size: 1rem;
   }
 
   .game-chat-container .chat-title {
@@ -549,45 +702,12 @@ body {
   }
 }
 
-.game-chat-container {
-  position: fixed;
-  bottom: 20px;
-  right: 20px;
-  width: 320px;
-  max-height: 400px;
-  background: rgba(255, 255, 255, 0.92);
-  border-radius: 16px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  z-index: 50;
-  border: 3px solid rgba(0, 0, 0, 0.15);
-}
-
-
-@media (max-width: 900px), (max-height: 750px) {
-  .game-chat-container {
-    position: static;              
-    width: 100%;
-    max-width: 600px;
-    margin: 1rem auto 0 auto;      
-    border-radius: 16px;
+@media (max-height: 750px) and (min-width: 901px) {
+  .game-chat-section {
+    max-height: 350px;
   }
-
-  .ready-container {
-    max-width: 1000px;
-    margin: 0 auto;
-    display: flex;
-    flex-direction: column;
-    gap: 1.5rem;
-  }
-}
-
-@media (max-height: 580px) and (min-width: 901px) {
+  
   .game-chat-container {
-    top: 10px;
-    bottom: auto;
-    right: 10px;
+    max-height: 350px;
   }
 }

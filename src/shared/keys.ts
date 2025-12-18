@@ -29,3 +29,6 @@ export const ERROR = "error";
 // Chat events specific to game chat
 export const GAME_CHAT_LISTING = "game:chat:listing";
 export const GAME_CHAT_MESSAGE = "game:chat:message";
+
+//Cancel lobby event
+export const GAME_LOBBY_CANCELLED = "game:lobby:cancelled";

@@ -4,6 +4,10 @@ VALUES ($1, $2, $3, 'lobby', CURRENT_TIMESTAMP, false)
 RETURNING *
 `;
 
+export const DELETE_GAME = `
+DELETE FROM games WHERE id = $1
+`;
+
 export const JOIN_GAME = `
 INSERT INTO "gameParticipants" (game_id, user_id, player_order)
 VALUES ($1, $2, (SELECT COALESCE(MAX(player_order), 0) + 1 FROM "gameParticipants" WHERE game_id = $1))
