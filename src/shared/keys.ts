@@ -25,3 +25,7 @@ export const SKIP = "game:skip";
 export const COLOR_CHOSEN = "game:color_chosen";
 
 export const ERROR = "error";
+
+// Chat events specific to game chat
+export const GAME_CHAT_LISTING = "game:chat:listing";
+export const GAME_CHAT_MESSAGE = "game:chat:message";

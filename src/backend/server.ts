@@ -25,12 +25,12 @@ if (isDevelopment) {
   liveReloadServer.watch([path.join(__dirname, "views"), path.join(__dirname, "public")]);
 }
 
-
 const app = express();
 const httpServer = createServer(app);
 
 // Initialize Socket.IO BEFORE static and routes
-app.set("io", initSockets(httpServer));
+const io = initSockets(httpServer);
+app.set("io", io);
 
 app.set("trust proxy", 1);
 

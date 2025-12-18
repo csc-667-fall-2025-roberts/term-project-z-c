@@ -15,7 +15,7 @@ export const initSockets = (httpServer: HTTPServer) => {
   io.on("connection", (socket) => {
     // @ts-ignore
     const session = socket.request.session as { id: string; user: User };
-    logger.info(`socket for user session ${session.id} established`)
+    logger.info(`socket for user session ${session.id} established`);
 
     socket.join(session.id);
     socket.join(GLOBAL_ROOM);
@@ -24,7 +24,13 @@ export const initSockets = (httpServer: HTTPServer) => {
     if (gameId) {
       initGameSocket(socket, parseInt(gameId), session.user.id);
     }
-    
+
+    socket.on("JOIN_GAME_ROOM", ({ gameId }: { gameId: number }) => {
+      const roomName = `game:${gameId}`;
+      socket.join(roomName);
+      logger.info(`User ${session.user.id} joined game room ${gameId}`);
+    });
+
     socket.on("close", () => {
       logger.info(`socket for user ${session.user.username} closed`);
     });

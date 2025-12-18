@@ -5,11 +5,13 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <link rel="stylesheet" href="/css/game.css" />
-  <title>Game <%= id %>
-  </title>
+  <title>Game <%= id %></title>
 </head>
 
 <body>
+  <!-- Hidden game ID for JS -->
+  <input type="hidden" id="game-id" value="<%= id %>">
+
   <!-- Welcome / Game Info -->
   <div class="welcome-container">
     <div class="header">
@@ -151,6 +153,16 @@
         </div>
       </div>
     </div>
+
+    <!-- Game Chat Window -->
+    <div id="game-chat-area" class="game-chat-container">
+      <h3 class="chat-title">Game Chat</h3>
+      <div id="game-message-listing" class="chat-messages"></div>
+      <div id="game-message-submit" class="chat-input-area">
+        <input type="text" placeholder="Type your message..." />
+        <button type="button">Send</button>
+      </div>
+    </div>
   </div>
 
   <!-- Color Picker Modal -->
@@ -165,6 +177,17 @@
       </div>
     </div>
   </div>
+
+  <!-- Chat Message Template -->
+  <template id="template-game-chat-message">
+    <div class="chat-message">
+      <div class="message-header">
+        <span class="message-username"></span>
+        <span class="message-time"></span>
+      </div>
+      <div class="message-text"></div>
+    </div>
+  </template>
 
   <script>
     // All of this has to be moved onto a separate js file. 
@@ -432,6 +455,9 @@
     });
 
   </script>
+
+  <!-- Game Chat Script -->
+  <script type="module" src="/js/gameChat.js"></script>
 </body>
 
 </html>

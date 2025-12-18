@@ -111,7 +111,7 @@
       }
 
       .games-section {
-        flex: 2;
+        flex: 1.2;
         background: rgba(255, 255, 255, 0.95);
         padding: 40px;
         border-radius: 20px;
@@ -227,14 +227,15 @@
       }
 
       #chat-area {
-        flex: 1;
-        min-width: 320px;
+        flex: 1.5;
+        min-width: 380px;
         background: rgba(255, 255, 255, 0.95);
         padding: 40px;
         border-radius: 20px;
         box-shadow: 0 8px 30px rgba(0, 0, 0, 0.2);
         display: flex;
         flex-direction: column;
+        overflow: hidden;
       }
 
       #message-listing {
@@ -242,6 +243,7 @@
         overflow-y: auto;
         margin-bottom: 25px;
         max-height: 450px;
+        padding-right: 10px;
       }
 
       .chat-message {
@@ -268,6 +270,7 @@
       #message-submit {
         display: flex;
         gap: 12px;
+        margin-top: auto;
       }
 
       #message-submit input {
@@ -276,6 +279,7 @@
         border: 1px solid #ddd;
         border-radius: 14px;
         font-size: 1.1rem;
+        box-sizing: border-box;
       }
 
       #message-submit input:focus {
@@ -285,6 +289,7 @@
       }
 
       #message-submit button {
+        flex-shrink: 0;
         padding: 16px 28px;
         background: #4caf50;
         color: white;
@@ -299,7 +304,6 @@
         background: #388e3c;
       }
 
-      /* Modal */
       .modal {
         display: none;
         position: fixed;
@@ -396,7 +400,6 @@
         <a href="/auth/logout" class="logout-btn">Logout</a>
       </div>
 
-      <!-- Display Name Edit Modal -->
       <div id="edit-display-name-modal" class="modal">
         <div class="modal-content">
           <h3>Edit Display Name</h3>
@@ -485,7 +488,6 @@
     </template>
 
     <script>
-      // Display Name Edit Modal
       const editBtn = document.getElementById('edit-display-name-btn');
       const modal = document.getElementById('edit-display-name-modal');
       const cancelBtn = document.getElementById('cancel-edit-btn');

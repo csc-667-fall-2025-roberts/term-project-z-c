@@ -6,6 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="stylesheet" href="/css/readyup.css" />
     <script type="module" src="/js/readyup.js"></script>
+    
 </head>
 
 <body>
@@ -13,8 +14,7 @@
     
     <!-- Welcome / Game Info -->
     <div class="welcome-container">
-        <h1>Welcome to Game <%= id %>
-        </h1>
+        <h1>Welcome to Game <%= id %></h1>
         <div class="header">
             <div>
                 <div class="game-info">
@@ -26,6 +26,7 @@
             <a href="/lobby" class="back-btn">Return to Lobby</a>
         </div>
     </div>
+
     <!-- Main Ready Container -->
     <div class="ready-container">
         <!-- Players Grid -->
@@ -53,6 +54,27 @@
             </button>
         </div>
     </div>
+
+    <!-- Game Chat Window -->
+    <div id="game-chat-area" class="game-chat-container">
+        <h3 class="chat-title">Game Chat</h3>
+        <div id="game-message-listing" class="chat-messages"></div>
+        <div id="game-message-submit" class="chat-input-area">
+            <input type="text" placeholder="Type your message..." />
+            <button type="button">Send</button>
+        </div>
+    </div>
+
+    <!-- Chat Message Template -->
+    <template id="template-game-chat-message">
+        <div class="chat-message">
+            <div class="message-header">
+                <span class="message-username"></span>
+                <span class="message-time"></span>
+            </div>
+            <div class="message-text"></div>
+        </div>
+    </template>
 </body>
 
 </html>

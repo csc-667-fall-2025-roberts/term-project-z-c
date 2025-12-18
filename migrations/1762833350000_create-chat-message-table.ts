@@ -18,6 +18,11 @@ export async function up(pgm: MigrationBuilder): Promise<void> {
       notNull: true,
       check: "message != ''",
     },
+    scope: {
+      type: "text",
+      notNull: true,
+      default: "lobby",
+    },
     time_sent: {
       type: "timestamp",
       notNull: true,
