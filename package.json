@@ -57,6 +57,7 @@
     "autoprefixer": "^10.4.23",
     "concurrently": "^9.2.1",
     "connect-livereload": "^0.6.1",
+    "esbuild": "^0.27.2",
     "eslint": "^9.37.0",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-prettier": "^5.5.4",

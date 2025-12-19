@@ -25,10 +25,41 @@ export const initSockets = (httpServer: HTTPServer) => {
       initGameSocket(socket, parseInt(gameId), session.user.id);
     }
 
+    // ===== LOBBY CHAT =====
+    socket.on("JOIN_LOBBY", () => {
+      socket.join("LOBBY_CHAT");
+      logger.info(`User ${session.user.id} joined lobby chat`);
+    });
+
+    socket.on("LEAVE_LOBBY", () => {
+      socket.leave("LOBBY_CHAT");
+      logger.info(`User ${session.user.id} left lobby chat`);
+    });
+
+    // ===== WAITING ROOM CHAT =====
+    socket.on("JOIN_WAITING_ROOM", ({ gameId }: { gameId: number }) => {
+      const roomName = `WAITING_ROOM_${gameId}`;
+      socket.join(roomName);
+      logger.info(`User ${session.user.id} joined waiting room ${gameId}`);
+    });
+
+    socket.on("LEAVE_WAITING_ROOM", ({ gameId }: { gameId: number }) => {
+      const roomName = `WAITING_ROOM_${gameId}`;
+      socket.leave(roomName);
+      logger.info(`User ${session.user.id} left waiting room ${gameId}`);
+    });
+
+    // ===== GAME CHAT =====
     socket.on("JOIN_GAME_ROOM", ({ gameId }: { gameId: number }) => {
-      const roomName = `game:${gameId}`;
+      const roomName = `GAME_${gameId}`;
       socket.join(roomName);
       logger.info(`User ${session.user.id} joined game room ${gameId}`);
+    });
+
+    socket.on("LEAVE_GAME_ROOM", ({ gameId }: { gameId: number }) => {
+      const roomName = `GAME_${gameId}`;
+      socket.leave(roomName);
+      logger.info(`User ${session.user.id} left game room ${gameId}`);
     });
 
     socket.on("close", () => {

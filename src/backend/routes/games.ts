@@ -1,6 +1,6 @@
 import express from "express";
 import { Server } from "socket.io";
-import { GAME_CREATE, GAME_LISTING, GAME_LOBBY_CANCELLED } from "../../shared/keys";
+import { GAME_CREATE, GAME_LISTING } from "../../shared/keys";
 import { Games, Cards } from "../db";
 import logger from "../lib/logger";
 import { StartGame, getCurrentTurn, endGame } from "../services/gameService";
@@ -56,7 +56,7 @@ router.get("/:id", async (request, response) => {
 
   const game = await Games.get(gameId);
   const card_data = await Cards.getHand(gameId, user.id);
-  const myCards = card_data.map((c) => ({ id: c.id, color: c.color, value: c.value}));
+  const myCards = card_data.map((c) => ({ id: c.id, color: c.color, value: c.value }));
 
   response.render("games/game", {
     ...game,
@@ -77,36 +77,6 @@ router.post("/:game_id/join", async (request, response) => {
   broadcastJoin(io, gameId, id, username);
 
   response.redirect(`/games/${game_id}`);
-});
-
-// Cancel lobby route
-router.post("/:game_id/cancel", async (request, response) => {
-  try {
-    const gameId = parseInt(request.params.game_id);
-    const userId = request.session.user!.id;
-
-    const game = await Games.get(gameId);
-
-    if (!game) {
-      return response.status(404).json({ error: "Game not found" });
-    }
-
-    if (game.host_id !== userId) {
-      return response.status(403).json({ error: "Only the host can cancel the lobby" });
-    }
-
-    await Games.deleteGame(gameId);
-
-    const io = request.app.get("io") as Server;
-    io.to(`game:${gameId}`).emit(GAME_LOBBY_CANCELLED, { gameId });
-
-    logger.info(`Game ${gameId} cancelled by host ${userId}`);
-
-    response.status(200).json({ success: true });
-  } catch (error: any) {
-    logger.error("Error cancelling lobby:", error);
-    response.status(500).json({ error: error.message });
-  }
 });
 
 // start game route
@@ -139,7 +109,7 @@ router.get("/:game_id/turn", async (request, response) => {
     response.status(200).json(turnInfo);
   } catch (error: any) {
     logger.error("Error getting current Turns:", error);
-    response.status(500).json({ error: error.message});
+    response.status(500).json({ error: error.message });
   }
 });
 
@@ -269,7 +239,7 @@ router.get("/:game_id/player_hand", async (request, response) => {
   const gameId = parseInt(request.params.game_id);
   const { id: userId } = request.session.user!;
   const card_data = await Cards.getHand(gameId, userId);
-  const myCards = card_data.map((c) => ({ id: c.id, color: c.color, value: c.value}));
+  const myCards = card_data.map((c) => ({ id: c.id, color: c.color, value: c.value }));
   response.status(200).json({ hand: myCards });
 });
 

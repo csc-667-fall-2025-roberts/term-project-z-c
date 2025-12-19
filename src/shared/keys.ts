@@ -12,7 +12,6 @@ export const PLAYER_UNREADY = "game:player_unready";
 export const GAME_START = "game:start";
 export const GAME_STATE_UPDATE = "game:state_update";
 
-
 // IN GAME EVENTS
 export const CARD_DEAL = "game:card_deal";
 export const CARD_DRAW_COMPLETED = "game:card_draw";
@@ -26,9 +25,16 @@ export const COLOR_CHOSEN = "game:color_chosen";
 
 export const ERROR = "error";
 
-// Chat events specific to game chat
+// CHAT EVENTS
+// Lobby chat (global/lobby page)
+export const LOBBY_CHAT_MESSAGE = "lobby:chat:message";
+
+// Waiting room / ready-up chat
+export const WAITING_ROOM_CHAT_MESSAGE = "waiting:room:chat:message";
+
+// In-game chat
 export const GAME_CHAT_LISTING = "game:chat:listing";
 export const GAME_CHAT_MESSAGE = "game:chat:message";
 
-//Cancel lobby event
+// Cancel lobby event
 export const GAME_LOBBY_CANCELLED = "game:lobby:cancelled";

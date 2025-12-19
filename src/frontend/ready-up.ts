@@ -149,7 +149,7 @@ const sendGameMessage = () => {
     const text = gameChatInput.value.trim();
     if (!text) return;
 
-    fetch(`/chat/${gameId}/game`, {
+    fetch(`/chat/${gameId}/waiting`, {
         method: "post",
         body: JSON.stringify({ message: text }),
         credentials: "include",
@@ -160,7 +160,7 @@ const sendGameMessage = () => {
 };
 
 const loadGameChat = async () => {
-    const response = await fetch(`/chat/${gameId}/game`, {
+    const response = await fetch(`/chat/${gameId}/waiting`, {
         method: "get",
         credentials: "include",
     });
@@ -194,8 +194,8 @@ socket.on(EVENTS.GAME_START, (data: { gameId: number; starterId: number; topCard
     window.location.href = `/games/${gameId}`;
 });
 
-socket.on(EVENTS.GAME_CHAT_MESSAGE, (message: ChatMessage) => {
-    console.log(EVENTS.GAME_CHAT_MESSAGE, message);
+socket.on(EVENTS.WAITING_ROOM_CHAT_MESSAGE, (message: ChatMessage) => {
+    console.log(EVENTS.WAITING_ROOM_CHAT_MESSAGE, message);
     appendGameMessage(message);
 });
 
@@ -203,6 +203,12 @@ socket.on(EVENTS.GAME_LOBBY_CANCELLED, ({ gameId: cancelledGameId }: { gameId: n
     console.log("Lobby cancelled:", cancelledGameId);
     alert("The host has cancelled the lobby. You'll be returned to the lobby.");
     window.location.href = "/lobby";
+});
+
+// Join waiting room on connect
+socket.on("connect", () => {
+    console.log("Socket connected, joining waiting room...");
+    socket.emit("JOIN_WAITING_ROOM", { gameId });
 });
 
 const toggleReady = async () => {
