@@ -2,10 +2,11 @@ import { Server as HTTPServer } from "http";
 import { Server } from "socket.io";
 import { GLOBAL_ROOM } from "../../shared/keys";
 import { sessionMiddleware } from "../config/session";
+import { startDisconnectTimer, cancelDisconnectTimer } from "../lib/disconnectManager"; 
 import { Games } from "../db";
 import logger from "../lib/logger";
 import { User, GameState } from "../../types/types";
-import { initGameSocket } from "./game-socket";
+import { initGameSocket, handleJoinGame } from "./game-socket";
 import db from "../db/connection";
 
 const hostTimeouts = new Map<number, NodeJS.Timeout>();
@@ -30,6 +31,29 @@ export const initSockets = (httpServer: HTTPServer) => {
     if (handshakeGameId) {
       initGameSocket(socket, parseInt(handshakeGameId), session.user.id);
     }
+
+    // client-driven join that validates and sends initial state
+    socket.on("JOIN_GAME", async ({ gameId }: { gameId: number | string }) => {
+      try {
+        const id = typeof gameId === "string" ? parseInt(gameId, 10) : gameId;
+        if (Number.isNaN(id)) {
+          logger.warn(`Invalid JOIN_GAME gameId from user ${session.user.id}: ${gameId}`);
+          return;
+        }
+
+        // Call shared handler that validates player, joins rooms, and emits initial state
+        await handleJoinGame(socket, id, session.user.id);
+
+        // Ensure disconnect logic can see the current game
+        socket.data.currentGameId = id;
+
+        // Cancel any pending disconnect timer for this player/game
+        await cancelDisconnectTimer(io, id, session.user.id, session.id);
+      } catch (err) {
+        logger.error("Error handling JOIN_GAME:", err);
+        socket.emit("error", { message: "Failed to join game" });
+      }
+    });
 
     socket.on("JOIN_LOBBY", () => {
       socket.join("LOBBY_CHAT");
@@ -148,21 +172,11 @@ export const initSockets = (httpServer: HTTPServer) => {
       }
 
       try {
-        await db.none(
-          `UPDATE "gameParticipants"
-           SET disconnected = TRUE
-           WHERE game_id = $1 AND user_id = $2`,
-          [gameId, userId]
-        );
-
-        io.to(`GAME_${gameId}`).emit("PLAYER_DISCONNECTED", { userId, gameId });
-        io.to(`WAITING_ROOM_${gameId}`).emit("PLAYER_DISCONNECTED", {
-          userId,
-          gameId,
-        });
+        // Start the disconnect timer (soft leave with 2-minute rejoin window)
+        await startDisconnectTimer(io, gameId, userId, session.id);
       } catch (err) {
         logger.error(
-          `Error marking user ${userId} disconnected from game ${gameId}:`,
+          `Error starting disconnect timer for user ${userId} in game ${gameId}:`,
           err
         );
       }
@@ -179,7 +193,7 @@ export const initSockets = (httpServer: HTTPServer) => {
           return;
         }
 
-        // Schedule auto-end  game if still in LOBBY state
+        // Schedule auto-end game if still in LOBBY state
         if (game.state !== GameState.LOBBY) {
           logger.info(
             `Host ${userId} disconnected from game ${gameId} (state=${game.state}); no auto-end scheduled`

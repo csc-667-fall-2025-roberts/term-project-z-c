@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Waiting to Rejoin</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: #f9fafb;
+      color: #333;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+    }
+    .container {
+      background: white;
+      padding: 2.5rem 3rem;
+      border-radius: 12px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.1);
+      max-width: 400px;
+      text-align: center;
+    }
+    h1 {
+      margin-bottom: 1rem;
+      color: #1f2937;
+    }
+    p {
+      font-size: 1.1rem;
+      margin: 0.5rem 0 1.5rem;
+      color: #4b5563;
+    }
+    #countdown {
+      font-weight: 700;
+      font-size: 2.5rem;
+      color: #ef4444; /* red-500 */
+      margin-bottom: 2rem;
+      display: block;
+    }
+    button {
+      cursor: pointer;
+      font-size: 1rem;
+      padding: 0.75rem 1.5rem;
+      border-radius: 8px;
+      border: none;
+      margin: 0.5rem;
+      transition: background-color 0.3s ease;
+      width: 140px;
+    }
+    #rejoinBtn {
+      background-color: #3b82f6; /* blue-500 */
+      color: white;
+    }
+    #rejoinBtn:hover:not(:disabled) {
+      background-color: #2563eb; /* blue-600 */
+    }
+    #rejoinBtn:disabled {
+      background-color: #93c5fd; /* blue-300 */
+      cursor: not-allowed;
+    }
+    #leaveBtn {
+      background-color: #ef4444; /* red-500 */
+      color: white;
+    }
+    #leaveBtn:hover {
+      background-color: #dc2626; /* red-600 */
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>You left the game</h1>
+    <p>You have 2 minutes to rejoin before the game ends.</p>
+    <span id="countdown">120</span> seconds remaining
+
+    <div>
+      <button id="rejoinBtn">Rejoin Now</button>
+      <button id="leaveBtn">Leave Game</button>
+    </div>
+  </div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+    const currentGameId = <%= JSON.stringify(gameId) %>;
+
+    const socket = io();
+    const countdownEl = document.getElementById('countdown');
+    const rejoinBtn = document.getElementById('rejoinBtn');
+    const leaveBtn = document.getElementById('leaveBtn');
+
+    if (!currentGameId) {
+      console.warn('waiting.ejs: no gameId provided');
+    }
+
+    socket.emit('JOIN_WAITING_ROOM', { gameId: currentGameId });
+
+    socket.on('REJOIN_EXPIRED', (data) => {
+      if (data && data.gameId === currentGameId) {
+        alert('Rejoin window expired. Redirecting to lobby.');
+        window.location.href = '/lobby';
+      }
+    });
+
+    socket.on('REJOIN_CANCELLED', (data) => {
+      if (data && data.gameId === currentGameId) {
+        window.location.href = `/games/${currentGameId}`;
+      }
+    });
+
+    let timeLeft = 120;
+    const interval = setInterval(() => {
+      timeLeft--;
+      if (countdownEl) countdownEl.textContent = String(Math.max(0, timeLeft));
+      if (timeLeft <= 0) {
+        clearInterval(interval);
+        rejoinBtn.disabled = true;
+      }
+    }, 1000);
+
+    async function tryRejoin() {
+      rejoinBtn.disabled = true;
+      rejoinBtn.textContent = 'Trying...';
+
+      try {
+        const res = await fetch(`/games/${currentGameId}/join`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({})
+        });
+
+        const data = await res.json();
+        if (res.ok && data.ok) {
+          window.location.href = `/games/${currentGameId}`;
+        } else {
+          alert('Failed to rejoin: ' + (data?.error || 'unknown error'));
+          rejoinBtn.disabled = false;
+          rejoinBtn.textContent = 'Rejoin Now';
+        }
+      } catch (err) {
+        console.error('Rejoin request failed', err);
+        alert('Network error while trying to rejoin.');
+        rejoinBtn.disabled = false;
+        rejoinBtn.textContent = 'Rejoin Now';
+      }
+    }
+
+    async function leaveGame() {
+      leaveBtn.disabled = true;
+      leaveBtn.textContent = 'Leaving...';
+
+      try {
+        const res = await fetch(`/games/${currentGameId}/leave`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' }
+        });
+
+        if (res.ok) {
+          window.location.href = '/lobby';
+        } else {
+          alert('Failed to leave game.');
+          leaveBtn.disabled = false;
+          leaveBtn.textContent = 'Leave Game';
+        }
+      } catch (err) {
+        console.error('Leave request failed', err);
+        alert('Network error while trying to leave.');
+        leaveBtn.disabled = false;
+        leaveBtn.textContent = 'Leave Game';
+      }
+    }
+
+    rejoinBtn.addEventListener('click', tryRejoin);
+    leaveBtn.addEventListener('click', leaveGame);
+  </script>
+</body>
+</html>

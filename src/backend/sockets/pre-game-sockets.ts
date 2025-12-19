@@ -8,7 +8,8 @@ export function gameRoom (gameId : number) : string {
 
 // broadcasts when a player joins the game
 export function broadcastJoin(io: Server, gameId: number, userId: number, username: string): void {
-    io.to(gameRoom(gameId)).emit(PLAYER_JOINED, { gameId, userId, username });
+    const room = `WAITING_ROOM_${gameId}`;
+    io.to(room).emit(PLAYER_JOINED, { gameId, userId, username });
 }
 
 // broadcasts when a player leaves the game
@@ -18,15 +19,20 @@ export function broadcastLeave(io: Server, gameId: number, userId: number, usern
 
 // broadcasts when a player ready status changes
 export function broadcastPlayerReady(io: Server, gameId: number, userId: number, isReady: boolean): void {
-    io.to(gameRoom(gameId)).emit(PLAYER_READY, { gameId, userId, isReady });
+    const room = `WAITING_ROOM_${gameId}`;
+    io.to(room).emit(PLAYER_READY, { gameId, userId, isReady });
 }
 
 // broadcasts when the game starts
-export function broadcastGameStart( io: Server, gameId: number, starterId: number, topCard: { id: number; color: string; value: string }
+export function broadcastGameStart( io: Server, gameId: number, starterId: number, topCard:{ id: number; color: string; value: string }
 ): void {
-    const room = gameRoom(gameId);
-    console.log(`Broadcasting GAME_START to room: ${room}`);
-    io.to(room).emit(GAME_START, { gameId, starterId, topCard});
+    const waitingRoom = `WAITING_ROOM_${gameId}`;
+    const gameRoom = `GAME_${gameId}`;
+
+    console.log(`Broadcasting GAME_START to room: ${waitingRoom} and ${gameRoom}`);
+    io.to(waitingRoom).emit(GAME_START, { gameId, starterId, topCard});
+
+    io.to(gameRoom).emit(GAME_START, { gameId, starterId, topCard});
 }
 
 // broadcasts when game state changes

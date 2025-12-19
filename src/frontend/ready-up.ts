@@ -1,4 +1,3 @@
-// src/frontend/readyup.ts (replace your existing ready-up client file)
 import socketIO from "socket.io-client";
 import * as EVENTS from "../shared/keys";
 import type { GamePlayer, ChatMessage } from "../types/types";

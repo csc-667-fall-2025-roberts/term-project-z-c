@@ -6,6 +6,9 @@ import { Games, Cards } from "../db";
 import logger from "../lib/logger";
 import { StartGame, getCurrentTurn, endGame } from "../services/gameService";
 import { playACard, drawCards, endTurn } from "../services/moveService";
+import { GameState } from "../../types/types";
+import { startDisconnectTimer } from "../lib/disconnectManager";
+
 import {
   broadcastJoin,
   broadcastGameStart,
@@ -21,7 +24,6 @@ import {
   broadcastReverse,
   broadcastColorChosen,
 } from "../sockets/gameplay-socket";
-import { GameState } from "../../types/types";
 
 const router = express.Router();
 
@@ -48,7 +50,7 @@ router.post("/", async (request, response) => {
     const { id } = request.session.user!;
     const { name, max_players, is_private, password } = request.body;
 
-    const maxPlayers = max_players ? parseInt(max_players) : 4;
+    const maxPlayers = max_players ? parseInt(max_players, 10) : 4;
     const isPrivate = is_private === "on" || is_private === "true";
 
     let passwordHash: string | null = null;
@@ -80,7 +82,9 @@ router.post("/", async (request, response) => {
 
 // Join or redirect based on game state
 router.get("/:id/join-or-redirect", async (request, response) => {
-  const gameId = parseInt(request.params.id);
+  const gameId = parseInt(request.params.id, 10);
+  if (Number.isNaN(gameId)) return response.redirect("/lobby");
+
   const userId = request.session.user!.id;
 
   try {
@@ -120,8 +124,24 @@ router.get("/:id/join-or-redirect", async (request, response) => {
   }
 });
 
+// --- IMPORTANT: more specific route must come BEFORE the generic "/:id" route ---
+// Waiting page route (renders waiting.ejs)
+router.get("/waiting/:game_id", async (req, res) => {
+  const gameId = parseInt(req.params.game_id, 10);
+  if (Number.isNaN(gameId)) {
+    return res.redirect("/lobby");
+  }
+  res.render("games/waiting", { gameId });
+});
+
+// Game page (generic by id). Keep this AFTER the waiting route.
 router.get("/:id", async (request, response) => {
-  const gameId = parseInt(request.params.id);
+  const gameId = parseInt(request.params.id, 10);
+  if (Number.isNaN(gameId)) {
+    logger.warn("Invalid game id in URL");
+    return response.redirect("/lobby");
+  }
+
   const user = request.session.user!;
 
   const game = await Games.get(gameId);
@@ -148,7 +168,9 @@ router.post("/:game_id/join", async (request, response) => {
   try {
     const { id, username } = request.session.user!;
     const { game_id } = request.params;
-    const gameId = parseInt(game_id);
+    const gameId = parseInt(game_id, 10);
+
+    if (Number.isNaN(gameId)) return response.status(400).json({ error: "Invalid game id" });
 
     logger.info(`User ${id} attempting to join game ${gameId}`);
 
@@ -208,25 +230,38 @@ router.post("/:game_id/leave", async (request, response) => {
   try {
     const { id } = request.session.user!;
     const { game_id } = request.params;
-    const gameId = parseInt(game_id);
+    const gameId = parseInt(game_id, 10);
+
+    if (Number.isNaN(gameId)) {
+      return response.redirect("/lobby");
+    }
 
     const game = await Games.getById(gameId);
     if (!game) {
       return response.redirect("/lobby");
     }
-
-    await Games.removePlayer(gameId, id);
-    logger.info(`User ${id} left game ${gameId}`);
-
+    
     const io = request.app.get("io") as Server;
+    const sessionId = request.session.id;
+
+    // Start timer to allow rejoin within 2 minutes (soft-leave).
+    // startDisconnectTimer will mark the player disconnected in DB and schedule hard removal if they don't return.
+    await startDisconnectTimer(io, gameId, id, sessionId);
+    logger.info(`User ${id} disconnected from game ${gameId}, started disconnect timer`);
+
+    // Notify waiting room that the player left (preserves previous behavior)
     io.to(`WAITING_ROOM_${gameId}`).emit("PLAYER_LEFT", { userId: id, gameId });
 
-    const remainingPlayers = await Games.getPlayers(gameId);
-    if (remainingPlayers.length === 0) {
+    // After soft-leave, evaluate host/ending logic using connected players only
+    const remainingConnected = await Games.getConnectedPlayers(gameId);
+
+    if (remainingConnected.length === 0) {
       await Games.updateState(gameId, GameState.ENDED);
-      logger.info(`Game ${gameId} ended (no players remaining)`);
+      logger.info(`Game ${gameId} ended (no connected players remaining)`);
+      io.to(`GAME_${gameId}`).emit("GAME_ENDED", { gameId, reason: "no_connected_players" });
+      io.to(`WAITING_ROOM_${gameId}`).emit("GAME_ENDED", { gameId, reason: "no_connected_players" });
     } else if (game.host_id === id) {
-      const newHost = remainingPlayers[0];
+      const newHost = remainingConnected[0];
       await Games.updateHost(gameId, newHost.user_id);
       io.to(`WAITING_ROOM_${gameId}`).emit("HOST_CHANGED", { 
         gameId, 
@@ -235,7 +270,8 @@ router.post("/:game_id/leave", async (request, response) => {
       logger.info(`Game ${gameId} host changed to user ${newHost.user_id}`);
     }
 
-    response.redirect("/lobby");
+    // Redirect user to waiting page so they see the rejoin screen
+    response.redirect(`/games/waiting/${gameId}`);
   } catch (error: any) {
     logger.error("Error leaving game:", error);
     response.redirect("/lobby");
@@ -247,7 +283,9 @@ router.post("/:game_id/cancel", async (request, response) => {
   try {
     const { id: userId } = request.session.user!;
     const { game_id } = request.params;
-    const gameId = parseInt(game_id);
+    const gameId = parseInt(game_id, 10);
+
+    if (Number.isNaN(gameId)) return response.status(400).send("Invalid game id");
 
     const game = await Games.getById(gameId);
 
@@ -288,7 +326,7 @@ router.post("/:game_id/cancel", async (request, response) => {
 
 router.post("/:game_id/start", async (request, response) => {
   try {
-    const gameId = parseInt(request.params.game_id);
+    const gameId = parseInt(request.params.game_id, 10);
     const result = await StartGame(gameId);
 
     const io = request.app.get("io") as Server;
@@ -319,7 +357,7 @@ router.post("/:game_id/start", async (request, response) => {
 
 router.get("/:game_id/turn", async (request, response) => {
   try {
-    const gameId = parseInt(request.params.game_id);
+    const gameId = parseInt(request.params.game_id, 10);
     const turnInfo = await getCurrentTurn(gameId);
     response.status(200).json(turnInfo);
   } catch (error: any) {
@@ -330,7 +368,7 @@ router.get("/:game_id/turn", async (request, response) => {
 
 router.post("/:game_id/end", async (request, response) => {
   try {
-    const gameId = parseInt(request.params.game_id);
+    const gameId = parseInt(request.params.game_id, 10);
     const user = request.session.user!;
 
     const game = await Games.getById(gameId);
@@ -361,7 +399,7 @@ router.post("/:game_id/end", async (request, response) => {
 
 router.post("/:game_id/finish", async (request, response) => {
   try {
-    const gameId = parseInt(request.params.game_id);
+    const gameId = parseInt(request.params.game_id, 10);
     const { winnerId } = request.body;
 
     await endGame(gameId, winnerId);
@@ -382,7 +420,7 @@ router.post("/:game_id/finish", async (request, response) => {
 
 router.post("/:game_id/play", async (request, response) => {
   try {
-    const gameId = parseInt(request.params.game_id);
+    const gameId = parseInt(request.params.game_id, 10);
     const { id: userId, username } = request.session.user!;
     const { cardId, chosenColor } = request.body;
 
@@ -454,7 +492,7 @@ router.post("/:game_id/play", async (request, response) => {
 
 router.post("/:game_id/draw", async (request, response) => {
   try {
-    const gameId = parseInt(request.params.game_id);
+    const gameId = parseInt(request.params.game_id, 10);
     const { id: userId, username } = request.session.user!;
     const { count } = request.body;
 
@@ -478,7 +516,7 @@ router.post("/:game_id/draw", async (request, response) => {
 
 router.post("/:game_id/end-turn", async (request, response) => {
   try {
-    const gameId = parseInt(request.params.game_id);
+    const gameId = parseInt(request.params.game_id, 10);
     const { id: userId } = request.session.user!;
 
     await endTurn(gameId, userId);
@@ -501,7 +539,7 @@ router.post("/:game_id/end-turn", async (request, response) => {
 });
 
 router.get("/:game_id/player_hand", async (request, response) => {
-  const gameId = parseInt(request.params.game_id);
+  const gameId = parseInt(request.params.game_id, 10);
   const { id: userId } = request.session.user!;
   const card_data = await Cards.getHand(gameId, userId);
   const myCards = card_data.map((c) => ({

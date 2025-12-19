@@ -20,6 +20,8 @@ import {
   RECONNECT_PLAYER,      
   TOGGLE_PLAYER_READY,
   GET_CURRENT_TURN_PLAYER,
+  MARK_PLAYER_DISCONNECTED,
+  GET_CONNECTED_PLAYERS,
 } from "./sql";
 
 const create = async (
@@ -149,6 +151,14 @@ const updateHost = async (game_id: number, newHostId: number) =>
     [newHostId, game_id]
   );
 
+  // Mark player as disconnected (soft leave)
+const markPlayerDisconnected = async (game_id: number, user_id: number) =>
+  await db.none(MARK_PLAYER_DISCONNECTED, [game_id, user_id]);
+
+// Get only connected players
+const getConnectedPlayers = async (game_id: number) =>
+  await db.manyOrNone<GamePlayer>(GET_CONNECTED_PLAYERS, [game_id]);
+
 export {
   create,
   get,
@@ -171,4 +181,6 @@ export {
   deleteGame,
   removePlayer,
   updateHost,
+  markPlayerDisconnected,
+  getConnectedPlayers,
 };

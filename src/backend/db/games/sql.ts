@@ -156,3 +156,24 @@ export const GET_CURRENT_TURN_PLAYER = `
   WHERE gp.game_id = $1
     AND gp.player_order = ((current_game.current_turn % player_count.total) + 1)
 `;
+
+
+export const MARK_PLAYER_DISCONNECTED = `
+  UPDATE "gameParticipants"
+  SET disconnected = TRUE
+  WHERE game_id = $1 AND user_id = $2
+`;
+
+export const GET_CONNECTED_PLAYERS = `
+  SELECT
+    user_id,
+    username,
+    email,
+    display_name,
+    player_order as position,
+    is_ready
+  FROM "gameParticipants"
+  JOIN users ON users.id = user_id
+  WHERE game_id = $1 AND (disconnected IS NULL OR disconnected = FALSE)
+  ORDER BY player_order
+`;
