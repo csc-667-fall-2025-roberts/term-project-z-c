@@ -4,8 +4,587 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <link rel="stylesheet" href="/css/game.css" />
   <title>Game <%= id %></title>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka+One:wght@400&family=Roboto:wght@500;700&display=swap" rel="stylesheet">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Roboto', sans-serif;
+      min-height: 100vh;
+      background: 
+        radial-gradient(circle at center, #81c784 0%, transparent 60%),
+        linear-gradient(135deg, #66bb6a 0%, #4caf50 50%, #66bb6a 100%);
+      background-color: #66bb6a;
+      color: #333;
+      padding: 20px;
+      overflow-x: hidden;
+    }
+
+    /* Welcome Container */
+    .welcome-container {
+      background: rgba(255, 255, 255, 0.95);
+      padding: 20px 30px;
+      border-radius: 20px;
+      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.2);
+      margin-bottom: 20px;
+    }
+
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 15px;
+    }
+
+    .game-info {
+      font-size: 1rem;
+      color: #555;
+    }
+
+    .back-btn {
+      padding: 10px 20px;
+      background: #d32f2f;
+      color: white;
+      text-decoration: none;
+      font-weight: 700;
+      border-radius: 12px;
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+    }
+
+    .back-btn:hover {
+      background: #b71c1c;
+      transform: translateY(-2px);
+    }
+
+    /* Game Container */
+    .game-container {
+      max-width: 1600px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 20px;
+    }
+
+    @media (min-width: 1200px) {
+      .game-container {
+        grid-template-columns: 3fr 1fr;
+      }
+    }
+
+    /* Opponents Area */
+    .opponents-area {
+      background: rgba(255, 255, 255, 0.95);
+      padding: 25px;
+      border-radius: 20px;
+      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.2);
+      display: flex;
+      flex-wrap: wrap;
+      gap: 20px;
+      justify-content: center;
+    }
+
+    .opponent {
+      flex: 1;
+      min-width: 200px;
+      max-width: 300px;
+    }
+
+    .opponent-info {
+      background: rgba(240, 255, 240, 0.9);
+      padding: 12px;
+      border-radius: 12px;
+      margin-bottom: 10px;
+      border-left: 4px solid #81c784;
+    }
+
+    .opponent-info.active-player {
+      background: rgba(255, 245, 157, 0.9);
+      border-left-color: #fdd835;
+    }
+
+    .opponent-name {
+      font-weight: 700;
+      color: #2e7d32;
+      font-size: 1.1rem;
+      margin-bottom: 5px;
+    }
+
+    .opponent-card-count {
+      color: #666;
+      font-size: 0.95rem;
+    }
+
+    .opponent-card-count.active-turn {
+      color: #f57f17;
+      font-weight: 700;
+    }
+
+    .opponent-hand {
+      display: flex;
+      gap: -15px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    .opponent-card {
+      width: 40px;
+      height: 60px;
+      background: linear-gradient(135deg, #1976d2, #2196f3);
+      border-radius: 6px;
+      border: 2px solid #fff;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+      margin-left: -15px;
+    }
+
+    .opponent-card:first-child {
+      margin-left: 0;
+    }
+
+    /* Play Area */
+    .play-area {
+      background: rgba(255, 255, 255, 0.95);
+      padding: 30px;
+      border-radius: 20px;
+      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.2);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 25px;
+    }
+
+    .direction-indicator {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 1.3rem;
+      font-weight: 700;
+      color: #2e7d32;
+      background: rgba(240, 255, 240, 0.9);
+      padding: 12px 25px;
+      border-radius: 14px;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    }
+
+    .direction-arrow {
+      font-size: 2rem;
+      transition: transform 0.5s ease;
+    }
+
+    .direction-arrow.reverse {
+      transform: scaleX(-1);
+    }
+
+    .pile-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .pile-cards {
+      position: relative;
+    }
+
+    .draw-pile-stack,
+    .discard-pile-stack {
+      position: relative;
+      width: 100px;
+      height: 150px;
+    }
+
+    .draw-pile-card {
+      width: 100px;
+      height: 150px;
+      background: linear-gradient(135deg, #1976d2, #2196f3);
+      border-radius: 12px;
+      border: 3px solid #fff;
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+      cursor: pointer;
+      transition: all 0.3s ease;
+      position: relative;
+    }
+
+    .draw-pile-card::before {
+      content: 'UNO';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%) rotate(-15deg);
+      font-family: 'Fredoka One', cursive;
+      font-size: 1.8rem;
+      color: rgba(255, 255, 255, 0.3);
+    }
+
+    .draw-pile-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 8px 25px rgba(0, 0, 0, 0.4);
+    }
+
+    .discard-pile-shadow {
+      position: absolute;
+      width: 100px;
+      height: 150px;
+      background: rgba(0, 0, 0, 0.2);
+      border-radius: 12px;
+      top: 5px;
+      left: 5px;
+      z-index: 0;
+    }
+
+    .pile-label {
+      font-weight: 700;
+      color: #2e7d32;
+      font-size: 1rem;
+    }
+
+    /* Turn Indicator */
+    .turn-indicator {
+      background: rgba(255, 255, 255, 0.95);
+      padding: 20px;
+      border-radius: 20px;
+      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.2);
+      text-align: center;
+      grid-column: 1 / -1;
+    }
+
+    .turn-text {
+      font-family: 'Fredoka One', cursive;
+      font-size: 1.8rem;
+      color: #666;
+    }
+
+    .turn-text.your-turn {
+      color: #4caf50;
+      animation: pulse-glow 2s infinite;
+    }
+
+    @keyframes pulse-glow {
+      0%, 100% {
+        text-shadow: 0 0 10px rgba(76, 175, 80, 0.5);
+      }
+      50% {
+        text-shadow: 0 0 20px rgba(76, 175, 80, 0.8);
+      }
+    }
+
+    /* Player Hand */
+    .player-hand-container {
+      background: rgba(255, 255, 255, 0.95);
+      padding: 25px;
+      border-radius: 20px;
+      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.2);
+      grid-column: 1 / -1;
+    }
+
+    .hand-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+      gap: 15px;
+    }
+
+    .hand-info {
+      font-family: 'Fredoka One', cursive;
+      font-size: 1.5rem;
+      color: #2e7d32;
+    }
+
+    .play-card-btn {
+      padding: 12px 30px;
+      background: #4caf50;
+      color: white;
+      border: none;
+      border-radius: 12px;
+      font-weight: 700;
+      font-size: 1.1rem;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+    }
+
+    .play-card-btn:hover {
+      background: #388e3c;
+      transform: scale(1.05);
+    }
+
+    .player-cards {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      justify-content: center;
+      padding: 10px;
+    }
+
+    .player-card-wrapper {
+      transition: transform 0.2s ease;
+    }
+
+    /* UNO Cards */
+    .uno-card {
+      width: 80px;
+      height: 120px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 2rem;
+      font-weight: 700;
+      color: white;
+      text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+      border: 4px solid #fff;
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+      position: relative;
+      cursor: pointer;
+    }
+
+    .card-red {
+      background: linear-gradient(135deg, #e53935, #c62828);
+    }
+
+    .card-blue {
+      background: linear-gradient(135deg, #1e88e5, #1565c0);
+    }
+
+    .card-green {
+      background: linear-gradient(135deg, #43a047, #2e7d32);
+    }
+
+    .card-yellow {
+      background: linear-gradient(135deg, #fdd835, #f9a825);
+    }
+
+    .card-wild {
+      background: linear-gradient(135deg, #000000, #424242);
+    }
+
+    .player-card.clickable:hover {
+      transform: translateY(-10px);
+    }
+
+    .player-card.selected {
+      transform: translateY(-20px) scale(1.1);
+      box-shadow: 0 10px 30px rgba(76, 175, 80, 0.5);
+      border-color: #4caf50;
+    }
+
+    .flying-card {
+      position: fixed;
+      pointer-events: none;
+      z-index: 9999;
+      transition: all 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    }
+
+    /* Game Chat */
+    .game-chat-container {
+      background: rgba(255, 255, 255, 0.95);
+      padding: 25px;
+      border-radius: 20px;
+      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.2);
+      display: flex;
+      flex-direction: column;
+      max-height: 500px;
+    }
+
+    @media (min-width: 1200px) {
+      .game-chat-container {
+        grid-column: 2;
+        grid-row: 1 / span 3;
+      }
+    }
+
+    .chat-title {
+      font-family: 'Fredoka One', cursive;
+      font-size: 1.8rem;
+      color: #2e7d32;
+      margin-bottom: 15px;
+      text-shadow: 2px 2px 6px rgba(0, 0, 0, 0.2);
+    }
+
+    .chat-messages {
+      flex: 1;
+      overflow-y: auto;
+      margin-bottom: 15px;
+      padding-right: 10px;
+    }
+
+    .chat-message {
+      margin-bottom: 12px;
+      background: #e8f5e8;
+      padding: 10px 14px;
+      border-radius: 12px;
+      border-left: 4px solid #81c784;
+    }
+
+    .message-header {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.85rem;
+      color: #666;
+      margin-bottom: 5px;
+    }
+
+    .message-username {
+      font-weight: 700;
+      color: #2e7d32;
+    }
+
+    .message-time {
+      font-size: 0.8rem;
+      color: #999;
+    }
+
+    .message-text {
+      color: #333;
+      word-wrap: break-word;
+    }
+
+    .chat-input-area {
+      display: flex;
+      gap: 10px;
+    }
+
+    .chat-input-area input {
+      flex: 1;
+      padding: 12px;
+      border: 1px solid #ddd;
+      border-radius: 12px;
+      font-size: 0.95rem;
+    }
+
+    .chat-input-area input:focus {
+      outline: none;
+      border-color: #66bb6a;
+      box-shadow: 0 0 0 3px rgba(102, 187, 106, 0.3);
+    }
+
+    .chat-input-area button {
+      padding: 12px 24px;
+      background: #4caf50;
+      color: white;
+      border: none;
+      border-radius: 12px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+
+    .chat-input-area button:hover {
+      background: #388e3c;
+    }
+
+    /* Color Picker Modal */
+    .color-picker-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.7);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 10000;
+    }
+
+    .color-picker-overlay.active {
+      display: flex;
+    }
+
+    .color-picker {
+      background: white;
+      padding: 40px;
+      border-radius: 20px;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+      text-align: center;
+    }
+
+    .color-picker-title {
+      font-family: 'Fredoka One', cursive;
+      font-size: 2rem;
+      color: #2e7d32;
+      margin-bottom: 30px;
+      text-shadow: 2px 2px 6px rgba(0, 0, 0, 0.2);
+    }
+
+    .color-options {
+      display: flex;
+      gap: 20px;
+      justify-content: center;
+    }
+
+    .color-option {
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 3rem;
+      cursor: pointer;
+      border: 4px solid #fff;
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+      transition: all 0.3s ease;
+    }
+
+    .color-option:hover {
+      transform: scale(1.15);
+      box-shadow: 0 8px 25px rgba(0, 0, 0, 0.4);
+    }
+
+    .color-option.red {
+      background: linear-gradient(135deg, #e53935, #c62828);
+    }
+
+    .color-option.blue {
+      background: linear-gradient(135deg, #1e88e5, #1565c0);
+    }
+
+    .color-option.green {
+      background: linear-gradient(135deg, #43a047, #2e7d32);
+    }
+
+    .color-option.yellow {
+      background: linear-gradient(135deg, #fdd835, #f9a825);
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      .welcome-container {
+        padding: 15px 20px;
+      }
+
+      .game-info {
+        font-size: 0.9rem;
+      }
+
+      .turn-text {
+        font-size: 1.4rem;
+      }
+
+      .hand-info {
+        font-size: 1.2rem;
+      }
+
+      .uno-card {
+        width: 60px;
+        height: 90px;
+        font-size: 1.5rem;
+      }
+
+      .color-option {
+        width: 60px;
+        height: 60px;
+        font-size: 2rem;
+      }
+    }
+  </style>
 </head>
 
 <body>
@@ -367,98 +946,94 @@
           else if (option.classList.contains("blue")) colorClass = "card-blue";
           else if (option.classList.contains("green")) colorClass = "card-green";
           else if (option.classList.contains("yellow")) colorClass = "card-yellow";
+      // Turn wild into chosen color before playing
+      pendingWildCard.classList.remove("card-wild");
+      pendingWildCard.classList.remove("card-red", "card-blue", "card-green", "card-yellow");
+      pendingWildCard.classList.add(colorClass);
 
-          // Turn wild into chosen color before playing
-          pendingWildCard.classList.remove("card-wild");
-          pendingWildCard.classList.remove("card-red", "card-blue", "card-green", "card-yellow");
-          pendingWildCard.classList.add(colorClass);
+      colorOverlay.classList.remove("active");
 
-          colorOverlay.classList.remove("active");
+      // Now play it to discard like a normal card
+      playCardToDiscard(pendingWildCard);
 
-          // Now play it to discard like a normal card
-          playCardToDiscard(pendingWildCard);
+      pendingWildCard = null;
+    });
+  });
 
-          pendingWildCard = null;
+  // Draw card from pile
+  if (drawPile) {
+    drawPile.addEventListener("click", () => {
+      if (!hand) return;
+
+      // Determine start position (draw pile)
+      const drawRect = drawPile.getBoundingClientRect();
+      const startX = drawRect.left + drawRect.width / 2;
+      const startY = drawRect.top + drawRect.height / 2;
+
+      // Determine end position (hand area)
+      const handRect = hand.getBoundingClientRect();
+      const endX = handRect.left + handRect.width / 2;
+      const endY = handRect.top + handRect.height / 2;
+
+      const deltaX = endX - startX;
+      const deltaY = endY - startY;
+
+      // Randomly draw card
+      const colors = ["card-red", "card-blue", "card-green", "card-yellow"];
+      const values = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "+2", "⟲"];
+
+      const colorClass = colors[Math.floor(Math.random() * colors.length)];
+      const value = values[Math.floor(Math.random() * values.length)];
+
+      // Create clone at draw pile position
+      const flying = document.createElement("div");
+      flying.className = "uno-card player-card " + colorClass + " flying-card";
+      flying.textContent = value;
+
+      const cardWidth = 64;
+      const cardHeight = 96;
+
+      flying.style.left = startX - cardWidth / 2 + "px";
+      flying.style.top = startY - cardHeight / 2 + "px";
+      flying.style.width = cardWidth + "px";
+      flying.style.height = cardHeight + "px";
+      flying.style.transform = "translate(0, 0) scale(0.6)";
+      flying.style.opacity = "0";
+
+      document.body.appendChild(flying);
+
+      // Animate into hand
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          flying.style.transform =
+            "translate(" + deltaX + "px, " + deltaY + "px) scale(1)";
+          flying.style.opacity = "1";
         });
       });
 
-      // Draw card from pile
-      if (drawPile) {
-        drawPile.addEventListener("click", () => {
-          if (!hand) return;
+      flying.addEventListener(
+        "transitionend",
+        () => {
+          flying.remove();
 
-          // Determine start position (draw pile)
-          const drawRect = drawPile.getBoundingClientRect();
-          const startX = drawRect.left + drawRect.width / 2;
-          const startY = drawRect.top + drawRect.height / 2;
+          // Add the card into the hand
+          const wrapper = document.createElement("div");
+          wrapper.className = "player-card-wrapper";
 
-          // Determine end position (hand area)
-          const handRect = hand.getBoundingClientRect();
-          const endX = handRect.left + handRect.width / 2;
-          const endY = handRect.top + handRect.height / 2;
+          const card = document.createElement("div");
+          card.className = "uno-card player-card clickable " + colorClass;
+          card.textContent = value;
 
-          const deltaX = endX - startX;
-          const deltaY = endY - startY;
-
-          // Randomly draw card
-          const colors = ["card-red", "card-blue", "card-green", "card-yellow"];
-          const values = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "+2", "⟲"];
-
-          const colorClass = colors[Math.floor(Math.random() * colors.length)];
-          const value = values[Math.floor(Math.random() * values.length)];
-
-          // Create clone at draw pile position
-          const flying = document.createElement("div");
-          flying.className = "uno-card player-card " + colorClass + " flying-card";
-          flying.textContent = value;
-
-          const cardWidth = 64;
-          const cardHeight = 96;
-
-          flying.style.left = startX - cardWidth / 2 + "px";
-          flying.style.top = startY - cardHeight / 2 + "px";
-          flying.style.width = cardWidth + "px";
-          flying.style.height = cardHeight + "px";
-          flying.style.transform = "translate(0, 0) scale(0.6)";
-          flying.style.opacity = "0";
-
-          document.body.appendChild(flying);
-
-          // Animate into hand
-          requestAnimationFrame(() => {
-            requestAnimationFrame(() => {
-              flying.style.transform =
-                "translate(" + deltaX + "px, " + deltaY + "px) scale(1)";
-              flying.style.opacity = "1";
-            });
-          });
-
-          flying.addEventListener(
-            "transitionend",
-            () => {
-              flying.remove();
-
-              // Add the card into the hand
-              const wrapper = document.createElement("div");
-              wrapper.className = "player-card-wrapper";
-
-              const card = document.createElement("div");
-              card.className = "uno-card player-card clickable " + colorClass;
-              card.textContent = value;
-
-              wrapper.appendChild(card);
-              hand.appendChild(wrapper);
-            },
-            { once: true }
-          );
-        });
-      }
+          wrapper.appendChild(card);
+          hand.appendChild(wrapper);
+        },
+        { once: true }
+      );
     });
-
+  }
+});
   </script>
-
   <!-- Game Chat Script -->
   <script type="module" src="/js/gameChat.js"></script>
 </body>
-
 </html>
