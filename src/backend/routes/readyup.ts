@@ -3,6 +3,7 @@ import { Server } from "socket.io";
 import { Games } from "../db";
 import logger from "../lib/logger";
 import { broadcastPlayerReady } from "../sockets/pre-game-sockets";
+import { GameState } from "../../types/types";
 
 const router = express.Router();
 
@@ -17,6 +18,11 @@ router.get("/:id", async (req, res, next) => {
 
     if (!game) {
       return res.status(404).render("errors/404", { url: req.originalUrl });
+    }
+
+    if (game.state === GameState.ENDED) {
+      logger.info(`User ${userId} tried to access ended game ${gameId}, redirecting to lobby`);
+      return res.redirect("/lobby");
     }
 
     const isPlayerInGame = await Games.checkPlayerInGame(gameId, userId);
@@ -52,18 +58,18 @@ router.post("/:game_id/toggle", async (req, res) => {
   }
 });
 
-router.get ( "/:game_id/players", async (request,response) => {
+router.get("/:game_id/players", async (request, response) => {
   try {
     const gameId = parseInt(request.params.game_id);
     const players = await Games.getPlayers(gameId);
     const game = await Games.get(gameId);
-    const {id: userId} = request.session.user!;
+    const { id: userId } = request.session.user!;
     const isPlayerInGame = await Games.checkPlayerInGame(gameId, userId);
     if (!isPlayerInGame) {
       return response.status(403).json({ error: "User isnot in game" });
     }
 
-    response.json({ players, currentUserId: userId, capacity: game.capacity })
+    response.json({ players, currentUserId: userId, capacity: game.capacity });
   } catch (error: any) {
     logger.error("could not get readyup players:", error);
     response.status(500).json({ error: error.message });
@@ -71,4 +77,3 @@ router.get ( "/:game_id/players", async (request,response) => {
 });
 
 export default router;
-

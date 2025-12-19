@@ -3,6 +3,9 @@ import * as Games from "../db/games";
 import * as Moves from "../db/moves";
 import type { GamePlayer, GameCard } from "../../types/types";
 import { GameState } from "../../types/types";
+import { Server } from "socket.io";
+import logger from "../lib/logger";
+import { broadcastGameStateUpdate } from "../sockets/pre-game-sockets";
 
 const Cards_Per_Player = 7;
 
@@ -112,6 +115,50 @@ export async function endGame(gameId: number, winnerId?: number): Promise<void> 
   }
 
   await Games.updateGame(gameId, GameState.ENDED, winnerId, true);
+}
+
+/**
+ * End a game and clean up:
+ *  - Set state to ENDED
+ *  - Remove all participants
+ *  - Delete the game record
+ *  - Broadcast GAME_ENDED / GAME_STATE_UPDATE
+ */
+export async function endGameAndCleanup(
+  io: Server, 
+  gameId: number, 
+  reason: string = "host_timeout"
+): Promise<void> {
+  try {
+    const game = await Games.getById(gameId);
+    if (!game) {
+      logger.info(`endGameAndCleanup: game ${gameId} already deleted`);
+      return;
+    }
+
+    // 1) Mark game as ENDED (if not already)
+    if (game.state !== GameState.ENDED) {
+      await Games.updateState(gameId, GameState.ENDED);
+    }
+
+    // 2) Notify clients that the game has ended (both waiting room and in-game)
+    io.to(`GAME_${gameId}`).emit("GAME_ENDED", { gameId, reason });
+    io.to(`WAITING_ROOM_${gameId}`).emit("GAME_ENDED", { gameId, reason });
+    broadcastGameStateUpdate(io, gameId, GameState.ENDED);
+
+    // 3) Remove all players from gameParticipants
+    const players = await Games.getPlayers(gameId);
+    for (const p of players) {
+      await Games.removePlayer(gameId, p.user_id);
+    }
+
+    // 4) Actually delete the game record
+    await Games.deleteGame(gameId);
+
+    logger.info(`Game ${gameId} fully cleaned up and deleted (reason=${reason})`);
+  } catch (err: any) {
+    logger.error(`endGameAndCleanup failed for game ${gameId}:`, err);
+  }
 }
 
 export async function getGameState(gameId: number): Promise<{

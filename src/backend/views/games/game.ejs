@@ -57,6 +57,8 @@
       border-radius: 12px;
       transition: all 0.3s ease;
       box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+      border: none;
+      cursor: pointer;
     }
 
     .back-btn:hover {
@@ -602,7 +604,7 @@
                 <%= host_username %>
         </div>
       </div>
-      <a href="/lobby" class="back-btn">Leave Game</a>
+      <button id="leave-game-btn" class="back-btn">Leave Game</button>
     </div>
   </div>
 
@@ -770,6 +772,37 @@
   </template>
 
   <script>
+    // Leave Game button handler
+    const leaveGameBtn = document.getElementById("leave-game-btn");
+    if (leaveGameBtn) {
+      leaveGameBtn.addEventListener("click", async () => {
+        const gameId = document.body.dataset.gameId;
+        if (!gameId) {
+          console.error("Missing gameId on game page");
+          return;
+        }
+
+        try {
+          const res = await fetch(`/games/${gameId}/leave`, {
+            method: "POST",
+            credentials: "include",
+          });
+
+          if (res.redirected) {
+            window.location.href = res.url;
+          } else if (res.ok) {
+            window.location.href = "/lobby";
+          } else {
+            const text = await res.text();
+            alert(text || "Failed to leave game");
+          }
+        } catch (err) {
+          console.error("Error leaving game:", err);
+          alert("Failed to leave game");
+        }
+      });
+    }
+
     // All of this has to be moved onto a separate js file. 
     // need guidance on location!!
 
@@ -946,92 +979,93 @@
           else if (option.classList.contains("blue")) colorClass = "card-blue";
           else if (option.classList.contains("green")) colorClass = "card-green";
           else if (option.classList.contains("yellow")) colorClass = "card-yellow";
-      // Turn wild into chosen color before playing
-      pendingWildCard.classList.remove("card-wild");
-      pendingWildCard.classList.remove("card-red", "card-blue", "card-green", "card-yellow");
-      pendingWildCard.classList.add(colorClass);
 
-      colorOverlay.classList.remove("active");
+          // Turn wild into chosen color before playing
+          pendingWildCard.classList.remove("card-wild");
+          pendingWildCard.classList.remove("card-red", "card-blue", "card-green", "card-yellow");
+          pendingWildCard.classList.add(colorClass);
 
-      // Now play it to discard like a normal card
-      playCardToDiscard(pendingWildCard);
+          colorOverlay.classList.remove("active");
 
-      pendingWildCard = null;
-    });
-  });
+          // Now play it to discard like a normal card
+          playCardToDiscard(pendingWildCard);
 
-  // Draw card from pile
-  if (drawPile) {
-    drawPile.addEventListener("click", () => {
-      if (!hand) return;
-
-      // Determine start position (draw pile)
-      const drawRect = drawPile.getBoundingClientRect();
-      const startX = drawRect.left + drawRect.width / 2;
-      const startY = drawRect.top + drawRect.height / 2;
-
-      // Determine end position (hand area)
-      const handRect = hand.getBoundingClientRect();
-      const endX = handRect.left + handRect.width / 2;
-      const endY = handRect.top + handRect.height / 2;
-
-      const deltaX = endX - startX;
-      const deltaY = endY - startY;
-
-      // Randomly draw card
-      const colors = ["card-red", "card-blue", "card-green", "card-yellow"];
-      const values = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "+2", "⟲"];
-
-      const colorClass = colors[Math.floor(Math.random() * colors.length)];
-      const value = values[Math.floor(Math.random() * values.length)];
-
-      // Create clone at draw pile position
-      const flying = document.createElement("div");
-      flying.className = "uno-card player-card " + colorClass + " flying-card";
-      flying.textContent = value;
-
-      const cardWidth = 64;
-      const cardHeight = 96;
-
-      flying.style.left = startX - cardWidth / 2 + "px";
-      flying.style.top = startY - cardHeight / 2 + "px";
-      flying.style.width = cardWidth + "px";
-      flying.style.height = cardHeight + "px";
-      flying.style.transform = "translate(0, 0) scale(0.6)";
-      flying.style.opacity = "0";
-
-      document.body.appendChild(flying);
-
-      // Animate into hand
-      requestAnimationFrame(() => {
-        requestAnimationFrame(() => {
-          flying.style.transform =
-            "translate(" + deltaX + "px, " + deltaY + "px) scale(1)";
-          flying.style.opacity = "1";
+          pendingWildCard = null;
         });
       });
 
-      flying.addEventListener(
-        "transitionend",
-        () => {
-          flying.remove();
+      // Draw card from pile
+      if (drawPile) {
+        drawPile.addEventListener("click", () => {
+          if (!hand) return;
 
-          // Add the card into the hand
-          const wrapper = document.createElement("div");
-          wrapper.className = "player-card-wrapper";
+          // Determine start position (draw pile)
+          const drawRect = drawPile.getBoundingClientRect();
+          const startX = drawRect.left + drawRect.width / 2;
+          const startY = drawRect.top + drawRect.height / 2;
 
-          const card = document.createElement("div");
-          card.className = "uno-card player-card clickable " + colorClass;
-          card.textContent = value;
+          // Determine end position (hand area)
+          const handRect = hand.getBoundingClientRect();
+          const endX = handRect.left + handRect.width / 2;
+          const endY = handRect.top + handRect.height / 2;
 
-          wrapper.appendChild(card);
-          hand.appendChild(wrapper);
-        },
-        { once: true }
-      );
+          const deltaX = endX - startX;
+          const deltaY = endY - startY;
+
+          // Randomly draw card
+          const colors = ["card-red", "card-blue", "card-green", "card-yellow"];
+          const values = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "+2", "⟲"];
+
+          const colorClass = colors[Math.floor(Math.random() * colors.length)];
+          const value = values[Math.floor(Math.random() * values.length)];
+
+          // Create clone at draw pile position
+          const flying = document.createElement("div");
+          flying.className = "uno-card player-card " + colorClass + " flying-card";
+          flying.textContent = value;
+
+          const cardWidth = 64;
+          const cardHeight = 96;
+
+          flying.style.left = startX - cardWidth / 2 + "px";
+          flying.style.top = startY - cardHeight / 2 + "px";
+          flying.style.width = cardWidth + "px";
+          flying.style.height = cardHeight + "px";
+          flying.style.transform = "translate(0, 0) scale(0.6)";
+          flying.style.opacity = "0";
+
+          document.body.appendChild(flying);
+
+          // Animate into hand
+          requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+              flying.style.transform =
+                "translate(" + deltaX + "px, " + deltaY + "px) scale(1)";
+              flying.style.opacity = "1";
+            });
+          });
+
+          flying.addEventListener(
+            "transitionend",
+            () => {
+              flying.remove();
+
+              // Add the card into the hand
+              const wrapper = document.createElement("div");
+              wrapper.className = "player-card-wrapper";
+
+              const card = document.createElement("div");
+              card.className = "uno-card player-card clickable " + colorClass;
+              card.textContent = value;
+
+              wrapper.appendChild(card);
+              hand.appendChild(wrapper);
+            },
+            { once: true }
+          );
+        });
+      }
     });
-  }
-});
   </script>
   <!-- Game Chat Script -->
   <script type="module" src="/js/gameChat.js"></script>

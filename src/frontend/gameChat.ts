@@ -1,4 +1,4 @@
-// gameChat.ts
+// src/frontend/gameChat.ts
 import socketIo from "socket.io-client";
 import type { ChatMessage } from "../types/types";
 import * as chatKeys from "../shared/keys";
@@ -46,14 +46,75 @@ const appendMessage = ({ username, created_at, message, user_id }: ChatMessage) 
   listing.scrollTop = listing.scrollHeight;
 };
 
+// ===== Socket Event Listeners =====
+
+socket.on("connect", () => {
+  console.log("[gameChat] Socket connected, joining game room...", { gameId });
+
+  // Load existing chat history
+  fetch(`/chat/${gameId}/game`, {
+    method: "get",
+    credentials: "include",
+  });
+
+  // Join the game room
+  socket.emit("JOIN_GAME_ROOM", { gameId });
+});
+
+socket.on("disconnect", () => {
+  console.log("[gameChat] Socket disconnected");
+});
+
 socket.on(chatKeys.GAME_CHAT_LISTING, ({ messages }: { messages: ChatMessage[] }) => {
+  console.log("[gameChat] GAME_CHAT_LISTING", messages);
   messages.forEach(appendMessage);
 });
 
 socket.on(chatKeys.GAME_CHAT_MESSAGE, (message: ChatMessage) => {
+  console.log("[gameChat] GAME_CHAT_MESSAGE", message);
   appendMessage(message);
 });
 
+// ===== Player Disconnected Event =====
+socket.on("PLAYER_DISCONNECTED", ({ userId, gameId }: { userId: number; gameId: number }) => {
+  console.log(">>> [gameChat] PLAYER_DISCONNECTED EVENT <<<", { userId, gameId });
+
+  appendMessage({
+    id: 0,
+    username: "System",
+    email: "",
+    created_at: new Date(),
+    message: `Player ${userId} has disconnected from the game.`,
+    user_id: 0,
+  });
+});
+
+// ===== Game Ended Event =====
+socket.on("GAME_ENDED", ({ gameId, reason }: { gameId: number; reason: string }) => {
+  console.log(">>> [gameChat] GAME_ENDED EVENT <<<", { gameId, reason });
+
+  const endMessage =
+    reason === "host_timeout"
+      ? "The host disconnected for 2 minutes. The game has been ended."
+      : "The game has ended.";
+
+  appendMessage({
+    id: 0,
+    username: "System",
+    email: "",
+    created_at: new Date(),
+    message: endMessage,
+    user_id: 0,
+  });
+
+  // Redirect after 3 seconds
+  setTimeout(() => {
+    alert(endMessage + " Redirecting to lobby...");
+    window.location.href = "/lobby";
+  }, 3000);
+});
+
+// ===== Send Message =====
 const sendMessage = () => {
   const text = input.value.trim();
   if (!text) return;
@@ -75,13 +136,4 @@ button.addEventListener("click", (event) => {
 
 input.addEventListener("keydown", (event) => {
   if (event.key === "Enter") sendMessage();
-});
-
-// initial load
-socket.on("connect", () => {
-  fetch(`/chat/${gameId}/game`, {
-    method: "get",
-    credentials: "include",
-  });
-  socket.emit("JOIN_GAME_ROOM", { gameId });
 });

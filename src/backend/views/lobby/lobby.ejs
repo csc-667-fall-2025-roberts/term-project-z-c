@@ -676,8 +676,8 @@
           });
 
           if (response.ok) {
-            // Redirect to the game
-            window.location.href = `/games/${currentGameId}`;
+            // Successfully joined private game; navigate to ready-up page
+            window.location.href = `/readyup/${currentGameId}`;
           } else {
             const text = await response.text();
             joinErrorMessage.textContent = text || 'Incorrect password';
@@ -691,19 +691,54 @@
       });
 
       // Handle game join button clicks
-      document.addEventListener('click', (e) => {
+      let joiningGames = new Set();
+
+      document.addEventListener('click', async (e) => {
         if (e.target.classList.contains('goto-game-btn')) {
           e.preventDefault();
           const gameId = e.target.getAttribute('data-game-id');
           const isPrivate = e.target.getAttribute('data-is-private') === 'true';
 
-          if (isPrivate) {
-            currentGameId = gameId;
-            joinErrorMessage.style.display = 'none';
-            joinForm.reset();
-            joinModal.style.display = 'flex';
-          } else {
-            window.location.href = `/readyup/${gameId}`;
+          // Prevent duplicate joins
+          if (joiningGames.has(gameId)) {
+            console.log('Already joining game', gameId);
+            return;
+          }
+          joiningGames.add(gameId);
+
+          try {
+            if (isPrivate) {
+              // For private games, open password modal and join via API (no redirect)
+              currentGameId = gameId;
+              joinErrorMessage.style.display = 'none';
+              joinForm.reset();
+              joinModal.style.display = 'flex';
+            } else {
+              // Public games: join via POST and navigate to ready-up page
+              const response = await fetch(`/games/${gameId}/join`, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({}),
+                credentials: 'include',
+              });
+
+              if (!response.ok) {
+                const data = await response.json().catch(() => ({}));
+                alert(data.error || 'Failed to join game');
+                return;
+              }
+
+              // Successfully joined. Navigate to ready-up page.
+              console.log('Joined game', gameId);
+              window.location.href = `/readyup/${gameId}`;
+            }
+          } catch (error) {
+            console.error('Error joining game:', error);
+            alert('Failed to join game');
+          } finally {
+            joiningGames.delete(gameId);
           }
         }
       });

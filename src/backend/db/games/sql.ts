@@ -1,46 +1,9 @@
+// ===== GAME QUERIES =====
+
 export const CREATE_GAME = `
-INSERT INTO games (host_id, name, capacity, state, created_at, is_ready, is_private, password_hash)
-VALUES ($1, $2, $3, 'lobby', CURRENT_TIMESTAMP, false, $4, $5)
-RETURNING *
-`;
-
-export const DELETE_GAME = `
-DELETE FROM games WHERE id = $1
-`;
-
-export const JOIN_GAME = `
-INSERT INTO "gameParticipants" (game_id, user_id, player_order)
-VALUES ($1, $2, (SELECT COALESCE(MAX(player_order), 0) + 1 FROM "gameParticipants" WHERE game_id = $1))
-`;
-
-export const LIST_GAMES = `
-SELECT
-  g.*,
-  COALESCE(host.display_name, host.username) as host_username,
-  COUNT(gp.user_id) AS player_count,
-  COALESCE(
-    json_agg(
-      json_build_object(
-        'user_id', gp.user_id,
-        'username', u.username,
-        'email', u.email
-      )
-    ) FILTER (WHERE gp.user_id IS NOT NULL),
-    '[]'
-  ) AS players
-FROM games g
-LEFT JOIN users host ON g.host_id = host.id
-LEFT JOIN "gameParticipants" gp ON g.id=gp.game_id
-LEFT JOIN users u ON u.id=gp.user_id
-WHERE g.state=$1
-GROUP BY g.id, COALESCE(host.display_name, host.username)
-ORDER BY g.created_at DESC
-LIMIT $2
-`;
-
-export const GAMES_BY_USER = `
-SELECT games.* FROM "gameParticipants", games
-WHERE "gameParticipants".game_id=games.id AND user_id=$1
+  INSERT INTO games (host_id, name, capacity, state, created_at, is_ready, is_private, password_hash)
+  VALUES ($1, $2, $3, 'lobby', CURRENT_TIMESTAMP, false, $4, $5)
+  RETURNING *
 `;
 
 export const GAME_BY_ID = `
@@ -49,71 +12,147 @@ export const GAME_BY_ID = `
     COALESCE(u.display_name, u.username) as host_username
   FROM games g
   LEFT JOIN users u ON g.host_id = u.id
-  WHERE g.id=$1
+  WHERE g.id = $1
 `;
 
-// get players in a game
-export const GET_PLAYERS = `
-SELECT user_id, username, email, display_name, player_order as position, is_ready FROM "gameParticipants"
-JOIN users ON users.id = user_id
-WHERE game_id = $1 ORDER BY player_order
+export const GET_GAME_BY_ID = `
+  SELECT
+    g.*,
+    COALESCE(u.display_name, u.username) as host_username
+  FROM games g
+  LEFT JOIN users u ON g.host_id = u.id
+  WHERE g.id = $1
 `;
 
-// set players positions
-export const SET_PLAYER_POSITION = `
-UPDATE "gameParticipants" SET player_order = $2 WHERE game_id = $1 AND user_id = $3
+export const LIST_GAMES = `
+  SELECT
+    g.*,
+    COALESCE(host.display_name, host.username) as host_username,
+    COUNT(gp.user_id) AS player_count,
+    COALESCE(
+      json_agg(
+        json_build_object(
+          'user_id', gp.user_id,
+          'username', u.username,
+          'email', u.email
+        )
+      ) FILTER (WHERE gp.user_id IS NOT NULL),
+      '[]'
+    ) AS players
+  FROM games g
+  LEFT JOIN users host ON g.host_id = host.id
+  LEFT JOIN "gameParticipants" gp ON g.id = gp.game_id
+  LEFT JOIN users u ON u.id = gp.user_id
+  WHERE g.state = $1
+  GROUP BY g.id, COALESCE(host.display_name, host.username)
+  ORDER BY g.created_at DESC
+  LIMIT $2
 `;
 
-// Start game
+export const GAMES_BY_USER = `
+  SELECT games.*
+  FROM "gameParticipants", games
+  WHERE "gameParticipants".game_id = games.id
+    AND user_id = $1
+`;
+
 export const START_GAME = `
-UPDATE games SET state = 'in_progress', is_ready = true WHERE id = $1
+  UPDATE games
+  SET state = 'in_progress', is_ready = true
+  WHERE id = $1
 `;
 
-// update game 
 export const UPDATE_GAME = `
-UPDATE games
-SET state = $2, winner_id = $3, is_ready = $4
-WHERE id = $1
-RETURNING *
+  UPDATE games
+  SET state = $2, winner_id = $3, is_ready = $4
+  WHERE id = $1
+  RETURNING *
 `;
 
-// Leave game
+export const UPDATE_GAME_STATE = `
+  UPDATE games
+  SET state = $2
+  WHERE id = $1
+`;
+
+// ===== GAME PARTICIPANTS QUERIES =====
+
+export const JOIN_GAME = `
+  INSERT INTO "gameParticipants" (game_id, user_id, player_order)
+  VALUES ($1, $2, (SELECT COALESCE(MAX(player_order), 0) + 1 FROM "gameParticipants" WHERE game_id = $1))
+`;
+
 export const LEAVE_GAME = `
-DELETE FROM "gameParticipants" WHERE game_id = $1 AND user_id = $2
+  DELETE FROM "gameParticipants"
+  WHERE game_id = $1 AND user_id = $2
 `;
 
-// Get player count
+export const GET_PLAYERS = `
+  SELECT
+    user_id,
+    username,
+    email,
+    display_name,
+    player_order as position,
+    is_ready
+  FROM "gameParticipants"
+  JOIN users ON users.id = user_id
+  WHERE game_id = $1
+  ORDER BY player_order
+`;
+
+export const SET_PLAYER_POSITION = `
+  UPDATE "gameParticipants"
+  SET player_order = $2
+  WHERE game_id = $1 AND user_id = $3
+`;
+
 export const GET_PLAYER_COUNT = `
-SELECT COUNT(*) as count FROM "gameParticipants" WHERE game_id = $1
-`;
-
-// Check if player is in game
-export const CHECK_PLAYER_IN_GAME = `
-SELECT EXISTS(SELECT 1 FROM "gameParticipants" WHERE game_id = $1 AND user_id = $2) as is_player
-`;
-
-// Toggle player ready status
-export const TOGGLE_PLAYER_READY = `
-UPDATE "gameParticipants"
-SET is_ready = NOT is_ready
-WHERE game_id = $1 AND user_id = $2
-RETURNING is_ready
-`;
-
-// Get current turn player
-export const GET_CURRENT_TURN_PLAYER = `
-WITH player_count AS (
-  SELECT COUNT(*) as total
+  SELECT COUNT(*) as count
   FROM "gameParticipants"
   WHERE game_id = $1
-),
-current_game AS (
-  SELECT current_turn
-  FROM games
-  WHERE id = $1
-)
-SELECT gp.user_id, gp.player_order
-FROM "gameParticipants" gp, current_game, player_count
-WHERE gp.game_id = $1
-  AND gp.player_order = ((current_game.current_turn % player_count.total) + 1)
+`;
+
+export const CHECK_PLAYER_IN_GAME = `
+  SELECT EXISTS(
+    SELECT 1
+    FROM "gameParticipants"
+    WHERE game_id = $1 AND user_id = $2
+  ) as is_player
+`;
+
+export const GET_PLAYER_IN_GAME = `
+  SELECT user_id
+  FROM "gameParticipants"
+  WHERE game_id = $1 AND user_id = $2
+`;
+
+export const TOGGLE_PLAYER_READY = `
+  UPDATE "gameParticipants"
+  SET is_ready = NOT is_ready
+  WHERE game_id = $1 AND user_id = $2
+  RETURNING is_ready
+`;
+
+export const RECONNECT_PLAYER = `
+  UPDATE "gameParticipants"
+  SET disconnected = FALSE
+  WHERE game_id = $1 AND user_id = $2
+`;
+
+export const GET_CURRENT_TURN_PLAYER = `
+  WITH player_count AS (
+    SELECT COUNT(*) as total
+    FROM "gameParticipants"
+    WHERE game_id = $1
+  ),
+  current_game AS (
+    SELECT current_turn
+    FROM games
+    WHERE id = $1
+  )
+  SELECT gp.user_id, gp.player_order
+  FROM "gameParticipants" gp, current_game, player_count
+  WHERE gp.game_id = $1
+    AND gp.player_order = ((current_game.current_turn % player_count.total) + 1)
 `;

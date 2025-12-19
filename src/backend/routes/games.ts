@@ -34,7 +34,6 @@ router.get("/", async (request, response) => {
   const allGames = await Games.list();
   const userGames = await Games.getByUser(userId);
 
-  // Separate games into user's games and available games
   const userGameIds = new Set(userGames.map((g) => g.id));
   const myGames = allGames.filter((g) => userGameIds.has(g.id));
   const availableGames = allGames.filter((g) => !userGameIds.has(g.id));
@@ -44,7 +43,6 @@ router.get("/", async (request, response) => {
   io.to(sessionId).emit(GAME_LISTING, { myGames, availableGames });
 });
 
-// CREATE GAME (now supports public/private + password)
 router.post("/", async (request, response) => {
   try {
     const { id } = request.session.user!;
@@ -56,7 +54,6 @@ router.post("/", async (request, response) => {
     let passwordHash: string | null = null;
     if (isPrivate) {
       if (!password || !password.trim()) {
-        // In a nicer UX, you’d re-render the form with an error instead of sending plain text
         return response
           .status(400)
           .send("Password is required for private games");
@@ -68,7 +65,6 @@ router.post("/", async (request, response) => {
       `Create game request ${name}, ${maxPlayers}, private=${isPrivate} by ${id}`
     );
 
-    // Updated call: (user_id, name, capacity, is_private, password_hash)
     const game = await Games.create(id, name, maxPlayers, isPrivate, passwordHash);
     logger.info(`Game created: ${game.id}`);
 
@@ -82,11 +78,57 @@ router.post("/", async (request, response) => {
   }
 });
 
+// Join or redirect based on game state
+router.get("/:id/join-or-redirect", async (request, response) => {
+  const gameId = parseInt(request.params.id);
+  const userId = request.session.user!.id;
+
+  try {
+    const game = await Games.getById(gameId);
+
+    if (!game) {
+      logger.warn(`Game ${gameId} not found, redirecting to lobby`);
+      return response.redirect("/lobby");
+    }
+
+    // Check if user is a participant
+    const participant = await Games.getPlayerInGame(gameId, userId);
+
+    if (!participant) {
+      logger.warn(`User ${userId} is not part of game ${gameId}`);
+      return response.status(403).send("You are not part of this game.");
+    }
+
+    // If game ended, go to lobby 
+    if (game.state === GameState.ENDED) {
+      logger.info(`Game ${gameId} ended, redirecting user ${userId} to lobby`);
+      return response.redirect("/lobby");
+    }
+
+    // If game started, go to game room
+    if (game.state === GameState.IN_PROGRESS) {
+      logger.info(`User ${userId} rejoining in-progress game ${gameId}`);
+      return response.redirect(`/games/${gameId}`);
+    }
+
+    // Otherwise (WAITING or LOBBY), go to ready-up
+    logger.info(`User ${userId} joining waiting room for game ${gameId}`);
+    return response.redirect(`/readyup/${gameId}`);
+  } catch (error: any) {
+    logger.error("Error in join-or-redirect:", error);
+    return response.status(500).send("Failed to join game");
+  }
+});
+
 router.get("/:id", async (request, response) => {
   const gameId = parseInt(request.params.id);
   const user = request.session.user!;
 
   const game = await Games.get(gameId);
+  if (!game || game.state === GameState.ENDED) {
+    logger.info(`User ${user.id} tried to access ended/missing game ${gameId}, redirecting to lobby`);
+    return response.redirect("/lobby");
+  }
   const card_data = await Cards.getHand(gameId, user.id);
   const myCards = card_data.map((c) => ({
     id: c.id,
@@ -102,44 +144,148 @@ router.get("/:id", async (request, response) => {
   });
 });
 
-// JOIN GAME (now enforces password for private games)
 router.post("/:game_id/join", async (request, response) => {
   try {
     const { id, username } = request.session.user!;
     const { game_id } = request.params;
     const gameId = parseInt(game_id);
 
+    logger.info(`User ${id} attempting to join game ${gameId}`);
+
     const game = await Games.get(gameId);
 
-    if (game.is_private) {
-      const { password } = request.body;
-
-      if (!password || !password.trim()) {
-        // In a real app, re-render the lobby/readyup page with an error message
-        return response
-          .status(400)
-          .send("Password is required to join this game");
-      }
-
-      const ok = await bcrypt.compare(password.trim(), game.password_hash || "");
-      if (!ok) {
-        return response.status(401).send("Incorrect password");
-      }
+    if (!game) {
+      logger.warn(`Game ${gameId} not found, redirecting to lobby`);
+      return response.status(404).json({ error: "Game not found" });
     }
 
-    await Games.join(gameId, id);
+    logger.info(`Game ${gameId} state: ${game.state}, is_private: ${game.is_private}, host: ${game.host_id}`);
+
+    if (game.state === GameState.ENDED) {
+      logger.info(`User ${id} tried to join ended game ${gameId}, redirecting to lobby`);
+      return response.status(400).json({ error: "Game already ended" });
+    }
+
+    const existing = await Games.getPlayerInGame(gameId, id);
+
+    if (existing) {
+      await Games.reconnectPlayer(gameId, id);
+      logger.info(`User ${id} reconnected to game ${gameId}`);
+    } else {
+      if (game.is_private) {
+        const { password } = request.body;
+
+        logger.info(`Private game join attempt by user ${id}, password provided: ${!!password}`);
+
+        if (!password || !password.trim()) {
+          return response
+            .status(400)
+            .json({ error: "Password is required to join this game" });
+        }
+
+        const ok = await bcrypt.compare(password.trim(), game.password_hash || "");
+        if (!ok) {
+          logger.warn(`User ${id} provided incorrect password for game ${gameId}`);
+          return response.status(401).json({ error: "Incorrect password" });
+        }
+      }
+
+      await Games.join(gameId, id);
+      logger.info(`User ${id} joined game ${gameId}`);
+    }
 
     const io = request.app.get("io") as Server;
     broadcastJoin(io, gameId, id, username);
 
-    response.redirect(`/games/${game_id}`);
+    return response.status(200).json({ ok: true, gameId });
   } catch (error: any) {
     logger.error("Error joining game:", error);
+    return response.status(500).json({ error: "Failed to join game" });
+  }
+});
+
+router.post("/:game_id/leave", async (request, response) => {
+  try {
+    const { id } = request.session.user!;
+    const { game_id } = request.params;
+    const gameId = parseInt(game_id);
+
+    const game = await Games.getById(gameId);
+    if (!game) {
+      return response.redirect("/lobby");
+    }
+
+    await Games.removePlayer(gameId, id);
+    logger.info(`User ${id} left game ${gameId}`);
+
+    const io = request.app.get("io") as Server;
+    io.to(`WAITING_ROOM_${gameId}`).emit("PLAYER_LEFT", { userId: id, gameId });
+
+    const remainingPlayers = await Games.getPlayers(gameId);
+    if (remainingPlayers.length === 0) {
+      await Games.updateState(gameId, GameState.ENDED);
+      logger.info(`Game ${gameId} ended (no players remaining)`);
+    } else if (game.host_id === id) {
+      const newHost = remainingPlayers[0];
+      await Games.updateHost(gameId, newHost.user_id);
+      io.to(`WAITING_ROOM_${gameId}`).emit("HOST_CHANGED", { 
+        gameId, 
+        newHostId: newHost.user_id 
+      });
+      logger.info(`Game ${gameId} host changed to user ${newHost.user_id}`);
+    }
+
+    response.redirect("/lobby");
+  } catch (error: any) {
+    logger.error("Error leaving game:", error);
     response.redirect("/lobby");
   }
 });
 
-// start game route
+// Cancel lobby (host only, before game starts)
+router.post("/:game_id/cancel", async (request, response) => {
+  try {
+    const { id: userId } = request.session.user!;
+    const { game_id } = request.params;
+    const gameId = parseInt(game_id);
+
+    const game = await Games.getById(gameId);
+
+    if (!game) {
+      logger.warn(`Game ${gameId} not found for cancel`);
+      return response.status(404).send("Game not found");
+    }
+
+    if (game.host_id !== userId) {
+      logger.warn(`User ${userId} tried to cancel game ${gameId} but is not host`);
+      return response.status(403).send("Only the host can cancel this lobby");
+    }
+
+    // Only allow cancel if game hasn't started
+    if (game.state !== GameState.LOBBY) {
+      logger.warn(`User ${userId} tried to cancel game ${gameId} but it's already started or ended`);
+      return response.status(400).send("Cannot cancel a game that has already started");
+    }
+
+    const io = request.app.get("io") as Server;
+    
+    // Notify all players in waiting room BEFORE deleting the game
+    io.to(`WAITING_ROOM_${gameId}`).emit("LOBBY_CANCELLED", { gameId });
+    
+    // Notify lobby that this game is gone
+    io.to("LOBBY").emit("GAME_REMOVED", { gameId });
+
+    // Delete the game and all related data
+    await Games.deleteGame(gameId);
+    logger.info(`Game ${gameId} cancelled and deleted by host ${userId}`);
+
+    return response.sendStatus(200);
+  } catch (error: any) {
+    logger.error("Error cancelling lobby:", error);
+    return response.status(500).send("Failed to cancel lobby");
+  }
+});
+
 router.post("/:game_id/start", async (request, response) => {
   try {
     const gameId = parseInt(request.params.game_id);
@@ -171,7 +317,6 @@ router.post("/:game_id/start", async (request, response) => {
   }
 });
 
-// get current turn route
 router.get("/:game_id/turn", async (request, response) => {
   try {
     const gameId = parseInt(request.params.game_id);
@@ -186,6 +331,37 @@ router.get("/:game_id/turn", async (request, response) => {
 router.post("/:game_id/end", async (request, response) => {
   try {
     const gameId = parseInt(request.params.game_id);
+    const user = request.session.user!;
+
+    const game = await Games.getById(gameId);
+    if (!game) {
+      return response.status(404).send("Game not found");
+    }
+
+    if (game.host_id !== user.id) {
+      return response.status(403).send("Only the host can end the game");
+    }
+
+    await Games.updateState(gameId, GameState.ENDED);
+
+    const io = request.app.get("io") as Server;
+    io.to(`GAME_${gameId}`).emit("GAME_ENDED", { gameId, reason: "host_ended" });
+    io.to(`WAITING_ROOM_${gameId}`).emit("GAME_ENDED", { gameId, reason: "host_ended" });
+
+    broadcastGameStateUpdate(io, gameId, GameState.ENDED);
+
+    logger.info(`Game ${gameId} ended by host ${user.id}`);
+
+    response.redirect("/lobby");
+  } catch (error: any) {
+    logger.error("Error ending game:", error);
+    response.status(500).send("Failed to end game");
+  }
+});
+
+router.post("/:game_id/finish", async (request, response) => {
+  try {
+    const gameId = parseInt(request.params.game_id);
     const { winnerId } = request.body;
 
     await endGame(gameId, winnerId);
@@ -197,14 +373,13 @@ router.post("/:game_id/end", async (request, response) => {
     broadcastGameEnd(io, gameId, winnerId, winner?.username || "Unknown");
     broadcastGameStateUpdate(io, gameId, GameState.ENDED);
 
-    response.status(202).json({ message: "Game ended successfully" });
+    response.status(200).json({ message: "Game ended successfully" });
   } catch (error: any) {
     logger.error("Error ending game:", error);
     response.status(500).json({ error: error.message });
   }
 });
 
-// play a card route
 router.post("/:game_id/play", async (request, response) => {
   try {
     const gameId = parseInt(request.params.game_id);
@@ -228,10 +403,8 @@ router.post("/:game_id/play", async (request, response) => {
       value: card!.value,
     });
 
-    // Get turn info for special card effects
     const turnInfo = await getCurrentTurn(gameId);
 
-    // Handle special card effects
     if (card!.value === "skip") {
       const players = await Games.getPlayers(gameId);
       const skipped = players.find((p) => p.user_id === turnInfo.currentPlayerId);
@@ -279,7 +452,6 @@ router.post("/:game_id/play", async (request, response) => {
   }
 });
 
-// draw cards route
 router.post("/:game_id/draw", async (request, response) => {
   try {
     const gameId = parseInt(request.params.game_id);
@@ -304,7 +476,6 @@ router.post("/:game_id/draw", async (request, response) => {
   }
 });
 
-// end turn route
 router.post("/:game_id/end-turn", async (request, response) => {
   try {
     const gameId = parseInt(request.params.game_id);
