@@ -22,12 +22,10 @@ router.get("/", async (request, response) => {
 });
 
 router.post("/", async (request, response) => {
-  console.log("HIT POST /chat, body =", request.body);
   const { id } = request.session.user!;
   const { message } = request.body;
 
   if (typeof message !== "string" || !message.trim()) {
-    console.log("POST /chat rejected: invalid message", request.body);
     return response.status(400).send("Message is required");
   }
 
@@ -45,12 +43,10 @@ router.get("/lobby", async (request, response) => {
 });
 
 router.post("/lobby", async (request, response) => {
-  console.log("HIT POST /chat/lobby, body =", request.body);
   const { id } = request.session.user!;
   const { message } = request.body;
 
   if (typeof message !== "string" || !message.trim()) {
-    console.log("POST /chat/lobby rejected: invalid message", request.body);
     return response.status(400).send("Message is required");
   }
 
@@ -70,13 +66,11 @@ router.get("/:gameId/waiting", async (request, response) => {
 });
 
 router.post("/:gameId/waiting", async (request, response) => {
-  console.log(`HIT POST /chat/${request.params.gameId}/waiting, body =`, request.body);
   const { id } = request.session.user!;
   const gameId = Number(request.params.gameId);
   const { message } = request.body;
 
   if (typeof message !== "string" || !message.trim()) {
-    console.log("POST /chat/:gameId/waiting rejected: invalid message", request.body);
     return response.status(400).send("Message is required");
   }
 
@@ -96,13 +90,11 @@ router.get("/:gameId/game", async (request, response) => {
 });
 
 router.post("/:gameId/game", async (request, response) => {
-  console.log(`HIT POST /chat/${request.params.gameId}/game, body =`, request.body);
   const { id } = request.session.user!;
   const gameId = Number(request.params.gameId);
   const { message } = request.body;
 
   if (typeof message !== "string" || !message.trim()) {
-    console.log("POST /chat/:gameId/game rejected: invalid message", request.body);
     return response.status(400).send("Message is required");
   }
 
