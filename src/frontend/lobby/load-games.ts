@@ -8,7 +8,7 @@ export const loadGames = () => {
 };
 
 const createGameElement = (game: Game) => {
-  const gameItem = gameItemTemplate.content.cloneNode(true) as HTMLDivElement;
+  const gameItem = gameItemTemplate.content.cloneNode(true) as HTMLElement;
 
   gameItem.querySelector(".game-id")!.textContent = `${game.id}`;
   gameItem.querySelector(".game-name")!.textContent = game.name ?? `Game ${game.id}`;
@@ -19,8 +19,20 @@ const createGameElement = (game: Game) => {
     game.created_at,
   ).toLocaleDateString();
 
-  const goToGameBtn = gameItem.querySelector(".goto-game-btn") as HTMLAnchorElement;
-  goToGameBtn.href = `/readyup/${game.id}`;
+  // Set privacy info
+  const privacySpan = gameItem.querySelector(".game-privacy") as HTMLElement;
+  privacySpan.textContent = game.is_private ? "Private 🔒" : "Public 🌐";
+
+  // Configure the "Go to Game" button
+  const goToGameBtn = gameItem.querySelector(".goto-game-btn") as HTMLButtonElement;
+  goToGameBtn.setAttribute("data-game-id", String(game.id));
+  goToGameBtn.setAttribute("data-is-private", String(game.is_private || false));
+
+  // Add private-game class for styling
+  const gameItemDiv = gameItem.querySelector(".game-item") as HTMLElement;
+  if (game.is_private) {
+    gameItemDiv.classList.add("private-game");
+  }
 
   return gameItem;
 };

@@ -143,6 +143,11 @@
         box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
       }
 
+      .game-item.private-game {
+        border-left-color: #ff9800;
+        background: rgba(255, 248, 225, 0.9);
+      }
+
       .game-header {
         display: flex;
         justify-content: space-between;
@@ -172,6 +177,9 @@
         font-weight: 700;
         font-size: 1.2rem;
         transition: all 0.3s ease;
+        border: none;
+        cursor: pointer;
+        width: 100%;
       }
 
       .goto-game-btn:hover {
@@ -194,7 +202,9 @@
         font-size: 1.2rem;
       }
 
-      .form-group input, .form-group select {
+      .form-group input[type="text"],
+      .form-group input[type="password"],
+      .form-group select {
         width: 100%;
         padding: 16px;
         border: 1px solid #ddd;
@@ -203,10 +213,27 @@
         font-size: 1.2rem;
       }
 
-      .form-group input:focus, .form-group select:focus {
+      .form-group input[type="text"]:focus,
+      .form-group input[type="password"]:focus,
+      .form-group select:focus {
         outline: none;
         border-color: #66bb6a;
         box-shadow: 0 0 0 3px rgba(102, 187, 106, 0.3);
+      }
+
+      .form-group input[type="checkbox"] {
+        width: 20px;
+        height: 20px;
+        cursor: pointer;
+      }
+
+      .checkbox-label {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        cursor: pointer;
+        font-weight: 700;
+        font-size: 1.2rem;
       }
 
       .create-game-btn {
@@ -338,7 +365,7 @@
         justify-content: center;
       }
 
-      .save-btn, .cancel-btn {
+      .save-btn, .cancel-btn, .join-btn {
         padding: 12px 30px;
         border: none;
         border-radius: 12px;
@@ -347,18 +374,25 @@
         cursor: pointer;
       }
 
-      .save-btn {
+      .save-btn, .join-btn {
         background: #4caf50;
         color: white;
       }
 
-      .save-btn:hover {
+      .save-btn:hover, .join-btn:hover {
         background: #388e3c;
       }
 
       .cancel-btn {
         background: #ddd;
         color: #333;
+      }
+
+      .error-message {
+        color: #d32f2f;
+        font-size: 0.95rem;
+        margin-top: 10px;
+        display: none;
       }
 
       @media (max-width: 900px) {
@@ -400,6 +434,7 @@
         <a href="/auth/logout" class="logout-btn">Logout</a>
       </div>
 
+      <!-- Edit Display Name Modal -->
       <div id="edit-display-name-modal" class="modal">
         <div class="modal-content">
           <h3>Edit Display Name</h3>
@@ -424,6 +459,31 @@
         </div>
       </div>
 
+      <!-- Join Private Game Modal -->
+      <div id="join-private-game-modal" class="modal">
+        <div class="modal-content">
+          <h3>Join Private Game</h3>
+          <form id="join-private-game-form">
+            <div class="form-group">
+              <label for="private-game-password">Enter Game Password</label>
+              <input 
+                type="password" 
+                id="private-game-password" 
+                name="password" 
+                placeholder="Enter password" 
+                required 
+                autocomplete="off"
+              />
+            </div>
+            <div class="error-message" id="join-error-message"></div>
+            <div class="modal-actions">
+              <button type="submit" class="join-btn">Join Game</button>
+              <button type="button" id="cancel-join-btn" class="cancel-btn">Cancel</button>
+            </div>
+          </form>
+        </div>
+      </div>
+
       <div class="main-content">
         <div class="games-section">
           <h2 class="games-title">Available Games</h2>
@@ -434,6 +494,7 @@
               <label for="game-name">Game Name</label>
               <input type="text" id="game-name" name="name" placeholder="My Awesome Game" required />
             </div>
+
             <div class="form-group">
               <label for="max-players">Max Players</label>
               <select id="max-players" name="max_players" required>
@@ -446,6 +507,27 @@
                 <option value="8">8 Players</option>
               </select>
             </div>
+
+            <!-- Private Game Checkbox -->
+            <div class="form-group">
+              <label class="checkbox-label">
+                <input type="checkbox" id="is-private-checkbox" name="is_private" />
+                <span>Private game (requires password)</span>
+              </label>
+            </div>
+
+            <!-- Password Field (hidden by default) -->
+            <div class="form-group" id="password-group" style="display: none;">
+              <label for="game-password">Game Password</label>
+              <input
+                type="password"
+                id="game-password"
+                name="password"
+                placeholder="Enter a password for this game"
+                autocomplete="new-password"
+              />
+            </div>
+
             <button type="submit" class="create-game-btn">+ Create New Game</button>
           </form>
         </div>
@@ -482,36 +564,38 @@
           <div><strong>Created by:</strong> <span class="game-created-by"></span></div>
           <div><strong>Players:</strong> <span class="max-players"></span></div>
           <div><strong>Created:</strong> <span class="created-at"></span></div>
+          <div><strong>Privacy:</strong> <span class="game-privacy"></span></div>
         </div>
-        <a href="#" class="goto-game-btn">Go to Game</a>
+        <button class="goto-game-btn" data-game-id="" data-is-private="false">Go to Game</button>
       </div>
     </template>
 
     <script>
+      // Edit Display Name Modal
       const editBtn = document.getElementById('edit-display-name-btn');
-      const modal = document.getElementById('edit-display-name-modal');
-      const cancelBtn = document.getElementById('cancel-edit-btn');
-      const form = document.getElementById('edit-display-name-form');
+      const editModal = document.getElementById('edit-display-name-modal');
+      const cancelEditBtn = document.getElementById('cancel-edit-btn');
+      const editForm = document.getElementById('edit-display-name-form');
       const displayNameText = document.getElementById('display-name-text');
 
       editBtn.addEventListener('click', () => {
-        modal.style.display = 'flex';
+        editModal.style.display = 'flex';
       });
 
-      cancelBtn.addEventListener('click', () => {
-        modal.style.display = 'none';
+      cancelEditBtn.addEventListener('click', () => {
+        editModal.style.display = 'none';
       });
 
-      modal.addEventListener('click', (e) => {
-        if (e.target === modal) {
-          modal.style.display = 'none';
+      editModal.addEventListener('click', (e) => {
+        if (e.target === editModal) {
+          editModal.style.display = 'none';
         }
       });
 
-      form.addEventListener('submit', async (e) => {
+      editForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         
-        const formData = new FormData(form);
+        const formData = new FormData(editForm);
         const displayName = formData.get('display_name');
 
         try {
@@ -526,13 +610,101 @@
 
           if (response.ok) {
             displayNameText.textContent = displayName;
-            modal.style.display = 'none';
+            editModal.style.display = 'none';
           } else {
             alert('Failed to update display name');
           }
         } catch (error) {
           console.error('Error updating display name:', error);
           alert('Failed to update display name');
+        }
+      });
+
+      // Private Game Password Toggle
+      const privateCheckbox = document.getElementById('is-private-checkbox');
+      const passwordGroup = document.getElementById('password-group');
+      const gamePasswordInput = document.getElementById('game-password');
+
+      if (privateCheckbox && passwordGroup) {
+        privateCheckbox.addEventListener('change', () => {
+          if (privateCheckbox.checked) {
+            passwordGroup.style.display = 'block';
+            gamePasswordInput.setAttribute('required', 'required');
+          } else {
+            passwordGroup.style.display = 'none';
+            gamePasswordInput.removeAttribute('required');
+            gamePasswordInput.value = '';
+          }
+        });
+      }
+
+      // Join Private Game Modal
+      const joinModal = document.getElementById('join-private-game-modal');
+      const cancelJoinBtn = document.getElementById('cancel-join-btn');
+      const joinForm = document.getElementById('join-private-game-form');
+      const joinErrorMessage = document.getElementById('join-error-message');
+      let currentGameId = null;
+
+      cancelJoinBtn.addEventListener('click', () => {
+        joinModal.style.display = 'none';
+        joinErrorMessage.style.display = 'none';
+        joinForm.reset();
+      });
+
+      joinModal.addEventListener('click', (e) => {
+        if (e.target === joinModal) {
+          joinModal.style.display = 'none';
+          joinErrorMessage.style.display = 'none';
+          joinForm.reset();
+        }
+      });
+
+      joinForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        
+        const formData = new FormData(joinForm);
+        const password = formData.get('password');
+
+        try {
+          const response = await fetch(`/games/${currentGameId}/join`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ password }),
+            credentials: 'include',
+          });
+
+          if (response.ok) {
+            // Redirect to the game
+            window.location.href = `/games/${currentGameId}`;
+          } else {
+            const text = await response.text();
+            joinErrorMessage.textContent = text || 'Incorrect password';
+            joinErrorMessage.style.display = 'block';
+          }
+        } catch (error) {
+          console.error('Error joining game:', error);
+          joinErrorMessage.textContent = 'Failed to join game';
+          joinErrorMessage.style.display = 'block';
+        }
+      });
+
+      // Handle game join button clicks
+      document.addEventListener('click', (e) => {
+        if (e.target.classList.contains('goto-game-btn')) {
+          e.preventDefault();
+          const gameId = e.target.getAttribute('data-game-id');
+          const isPrivate = e.target.getAttribute('data-is-private') === 'true';
+
+          if (isPrivate) {
+            currentGameId = gameId;
+            joinErrorMessage.style.display = 'none';
+            joinForm.reset();
+            joinModal.style.display = 'flex';
+          } else {
+            window.location.href = `/games/${gameId}`;
+          }
         }
       });
     </script>

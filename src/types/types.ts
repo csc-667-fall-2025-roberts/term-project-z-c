@@ -41,6 +41,10 @@ export type Game = {
   winner_id?: number;
   state: GameState;
   current_turn: number;
+
+  //For private lobbies
+  is_private: boolean;
+  password_hash?: string | null;
 };
 
 export type GamePlayer = {

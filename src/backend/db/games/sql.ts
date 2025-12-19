@@ -1,6 +1,6 @@
 export const CREATE_GAME = `
-INSERT INTO games (host_id, name, capacity, state, created_at, is_ready)
-VALUES ($1, $2, $3, 'lobby', CURRENT_TIMESTAMP, false)
+INSERT INTO games (host_id, name, capacity, state, created_at, is_ready, is_private, password_hash)
+VALUES ($1, $2, $3, 'lobby', CURRENT_TIMESTAMP, false, $4, $5)
 RETURNING *
 `;
 
@@ -63,7 +63,6 @@ WHERE game_id = $1 ORDER BY player_order
 export const SET_PLAYER_POSITION = `
 UPDATE "gameParticipants" SET player_order = $2 WHERE game_id = $1 AND user_id = $3
 `;
-
 
 // Start game
 export const START_GAME = `

@@ -1,12 +1,26 @@
 import express from "express";
 import { Server } from "socket.io";
+import bcrypt from "bcryptjs";
 import { GAME_CREATE, GAME_LISTING } from "../../shared/keys";
 import { Games, Cards } from "../db";
 import logger from "../lib/logger";
 import { StartGame, getCurrentTurn, endGame } from "../services/gameService";
 import { playACard, drawCards, endTurn } from "../services/moveService";
-import { broadcastJoin, broadcastGameStart, broadcastGameStateUpdate } from "../sockets/pre-game-sockets";
-import { broadcastTurnChange, broadcastCardPlay, broadcastDraw, broadcastHandUpdate, broadcastGameEnd, broadcastSkip, broadcastReverse, broadcastColorChosen } from "../sockets/gameplay-socket";
+import {
+  broadcastJoin,
+  broadcastGameStart,
+  broadcastGameStateUpdate,
+} from "../sockets/pre-game-sockets";
+import {
+  broadcastTurnChange,
+  broadcastCardPlay,
+  broadcastDraw,
+  broadcastHandUpdate,
+  broadcastGameEnd,
+  broadcastSkip,
+  broadcastReverse,
+  broadcastColorChosen,
+} from "../sockets/gameplay-socket";
 import { GameState } from "../../types/types";
 
 const router = express.Router();
@@ -30,14 +44,32 @@ router.get("/", async (request, response) => {
   io.to(sessionId).emit(GAME_LISTING, { myGames, availableGames });
 });
 
+// CREATE GAME (now supports public/private + password)
 router.post("/", async (request, response) => {
   try {
     const { id } = request.session.user!;
-    const { name, max_players } = request.body;
+    const { name, max_players, is_private, password } = request.body;
 
     const maxPlayers = max_players ? parseInt(max_players) : 4;
-    logger.info(`Create game request ${name}, ${maxPlayers} by ${id}`);
-    const game = await Games.create(id, name, maxPlayers);
+    const isPrivate = is_private === "on" || is_private === "true";
+
+    let passwordHash: string | null = null;
+    if (isPrivate) {
+      if (!password || !password.trim()) {
+        // In a nicer UX, you’d re-render the form with an error instead of sending plain text
+        return response
+          .status(400)
+          .send("Password is required for private games");
+      }
+      passwordHash = await bcrypt.hash(password.trim(), 10);
+    }
+
+    logger.info(
+      `Create game request ${name}, ${maxPlayers}, private=${isPrivate} by ${id}`
+    );
+
+    // Updated call: (user_id, name, capacity, is_private, password_hash)
+    const game = await Games.create(id, name, maxPlayers, isPrivate, passwordHash);
     logger.info(`Game created: ${game.id}`);
 
     const io = request.app.get("io") as Server;
@@ -56,27 +88,55 @@ router.get("/:id", async (request, response) => {
 
   const game = await Games.get(gameId);
   const card_data = await Cards.getHand(gameId, user.id);
-  const myCards = card_data.map((c) => ({ id: c.id, color: c.color, value: c.value }));
+  const myCards = card_data.map((c) => ({
+    id: c.id,
+    color: c.color,
+    value: c.value,
+  }));
 
   response.render("games/game", {
     ...game,
     currentUserid: user.id,
     currentUserName: user.username,
-    myCards
+    myCards,
   });
 });
 
+// JOIN GAME (now enforces password for private games)
 router.post("/:game_id/join", async (request, response) => {
-  const { id, username } = request.session.user!;
-  const { game_id } = request.params;
-  const gameId = parseInt(game_id);
+  try {
+    const { id, username } = request.session.user!;
+    const { game_id } = request.params;
+    const gameId = parseInt(game_id);
 
-  await Games.join(gameId, id);
+    const game = await Games.get(gameId);
 
-  const io = request.app.get("io") as Server;
-  broadcastJoin(io, gameId, id, username);
+    if (game.is_private) {
+      const { password } = request.body;
 
-  response.redirect(`/games/${game_id}`);
+      if (!password || !password.trim()) {
+        // In a real app, re-render the lobby/readyup page with an error message
+        return response
+          .status(400)
+          .send("Password is required to join this game");
+      }
+
+      const ok = await bcrypt.compare(password.trim(), game.password_hash || "");
+      if (!ok) {
+        return response.status(401).send("Incorrect password");
+      }
+    }
+
+    await Games.join(gameId, id);
+
+    const io = request.app.get("io") as Server;
+    broadcastJoin(io, gameId, id, username);
+
+    response.redirect(`/games/${game_id}`);
+  } catch (error: any) {
+    logger.error("Error joining game:", error);
+    response.redirect("/lobby");
+  }
 });
 
 // start game route
@@ -89,10 +149,20 @@ router.post("/:game_id/start", async (request, response) => {
     const topCard = await Cards.getTopCard(gameId);
 
     broadcastGameStateUpdate(io, gameId, GameState.IN_PROGRESS);
-    broadcastGameStart(io, gameId, result.firstPlayerId, { id: topCard!.id, color: topCard!.color, value: topCard!.value });
+    broadcastGameStart(io, gameId, result.firstPlayerId, {
+      id: topCard!.id,
+      color: topCard!.color,
+      value: topCard!.value,
+    });
 
     const turnInfo = await getCurrentTurn(gameId);
-    broadcastTurnChange(io, gameId, turnInfo.currentPlayerId, turnInfo.direction, turnInfo.playerOrder);
+    broadcastTurnChange(
+      io,
+      gameId,
+      turnInfo.currentPlayerId,
+      turnInfo.direction,
+      turnInfo.playerOrder
+    );
 
     response.redirect(`/games/${gameId}`);
   } catch (error: any) {
@@ -122,9 +192,9 @@ router.post("/:game_id/end", async (request, response) => {
 
     const io = request.app.get("io") as Server;
     const players = await Games.getPlayers(gameId);
-    const winner = players.find(p => p.user_id === winnerId);
+    const winner = players.find((p) => p.user_id === winnerId);
 
-    broadcastGameEnd(io, gameId, winnerId, winner?.username || 'Unknown');
+    broadcastGameEnd(io, gameId, winnerId, winner?.username || "Unknown");
     broadcastGameStateUpdate(io, gameId, GameState.ENDED);
 
     response.status(202).json({ message: "Game ended successfully" });
@@ -142,7 +212,7 @@ router.post("/:game_id/play", async (request, response) => {
     const { cardId, chosenColor } = request.body;
 
     const playerHand = await Cards.getHand(gameId, userId);
-    const card = playerHand.find(c => c.id === cardId);
+    const card = playerHand.find((c) => c.id === cardId);
 
     const result = await playACard(gameId, userId, cardId, chosenColor);
 
@@ -152,21 +222,33 @@ router.post("/:game_id/play", async (request, response) => {
 
     const io = request.app.get("io") as Server;
 
-    broadcastCardPlay(io, gameId, userId, username, { id: card!.id, color: chosenColor || card!.color, value: card!.value });
+    broadcastCardPlay(io, gameId, userId, username, {
+      id: card!.id,
+      color: chosenColor || card!.color,
+      value: card!.value,
+    });
 
     // Get turn info for special card effects
     const turnInfo = await getCurrentTurn(gameId);
 
     // Handle special card effects
-    if (card!.value === 'skip') {
+    if (card!.value === "skip") {
       const players = await Games.getPlayers(gameId);
-      const skipped = players.find(p => p.user_id === turnInfo.currentPlayerId);
-      broadcastSkip(io, gameId, turnInfo.currentPlayerId, skipped?.username || 'Unknown');
+      const skipped = players.find((p) => p.user_id === turnInfo.currentPlayerId);
+      broadcastSkip(
+        io,
+        gameId,
+        turnInfo.currentPlayerId,
+        skipped?.username || "Unknown"
+      );
     }
-    if (card!.value === 'reverse') {
+    if (card!.value === "reverse") {
       broadcastReverse(io, gameId, turnInfo.direction);
     }
-    if ((card!.value === 'wild' || card!.value === 'wild_draw_four') && chosenColor) {
+    if (
+      (card!.value === "wild" || card!.value === "wild_draw_four") &&
+      chosenColor
+    ) {
       broadcastColorChosen(io, gameId, userId, username, chosenColor);
     }
 
@@ -178,11 +260,17 @@ router.post("/:game_id/play", async (request, response) => {
       broadcastGameStateUpdate(io, gameId, GameState.ENDED);
       return response.status(200).json({
         message: result.message,
-        winner: result.winner
+        winner: result.winner,
       });
     }
 
-    broadcastTurnChange(io, gameId, turnInfo.currentPlayerId, turnInfo.direction, turnInfo.playerOrder);
+    broadcastTurnChange(
+      io,
+      gameId,
+      turnInfo.currentPlayerId,
+      turnInfo.direction,
+      turnInfo.playerOrder
+    );
 
     response.status(200).json({ message: "Card played successfully" });
   } catch (error: any) {
@@ -208,7 +296,7 @@ router.post("/:game_id/draw", async (request, response) => {
 
     response.status(200).json({
       message: "Cards were drawn successfully",
-      cardIds: result.cardIds
+      cardIds: result.cardIds,
     });
   } catch (error: any) {
     logger.error("Error drawing your cards:", error);
@@ -226,7 +314,13 @@ router.post("/:game_id/end-turn", async (request, response) => {
 
     const io = request.app.get("io") as Server;
     const turnInfo = await getCurrentTurn(gameId);
-    broadcastTurnChange(io, gameId, turnInfo.currentPlayerId, turnInfo.direction, turnInfo.playerOrder);
+    broadcastTurnChange(
+      io,
+      gameId,
+      turnInfo.currentPlayerId,
+      turnInfo.direction,
+      turnInfo.playerOrder
+    );
 
     response.status(200).json({ message: "Turn ended" });
   } catch (error: any) {
@@ -239,7 +333,11 @@ router.get("/:game_id/player_hand", async (request, response) => {
   const gameId = parseInt(request.params.game_id);
   const { id: userId } = request.session.user!;
   const card_data = await Cards.getHand(gameId, userId);
-  const myCards = card_data.map((c) => ({ id: c.id, color: c.color, value: c.value }));
+  const myCards = card_data.map((c) => ({
+    id: c.id,
+    color: c.color,
+    value: c.value,
+  }));
   response.status(200).json({ hand: myCards });
 });
 
