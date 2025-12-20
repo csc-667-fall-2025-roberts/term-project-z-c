@@ -25,6 +25,7 @@ export interface ChatMessage extends DbChatMessage {
 
 export enum GameState {
   LOBBY = "lobby",
+  WAITING = "waiting",
   IN_PROGRESS = "in_progress",
   ENDED = "ended",
 }

@@ -1,5 +1,15 @@
 import { Server } from "socket.io";
 import { TURN_CHANGE, CARD_PLAY, CARD_DRAW_COMPLETED, GAME_END,PLAYER_HAND_UPDATE,SKIP,ERROR,COLOR_CHOSEN,REVERSE } from "../../shared/keys";
+import { getGameState } from "../services/gameService";
+
+export async function broadcastGameState(
+  io: Server,
+  gameId: number
+): Promise<void> {
+  const gameState = await getGameState(gameId);
+  io.to(gameRoom(gameId)).emit("GAME_UPDATE", gameState);
+}
+
 
 export function gameRoom (gameId : number) : string {
     return `game:${gameId}`;

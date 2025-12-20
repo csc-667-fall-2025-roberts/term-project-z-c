@@ -5,7 +5,10 @@ import logger from "../lib/logger";
 
 type TimerKey = string;
 const disconnectTimers = new Map<TimerKey, NodeJS.Timeout>();
-const TIMEOUT_MS = 2 * 60 * 1000; // 2 minutes
+// disconnectManager.ts
+const DISCONNECT_TIMEOUT = 5 * 60 * 1000; // 5 minutes
+const TIMEOUT_MS = DISCONNECT_TIMEOUT;
+
 
 function key(gameId: number, userId: number) {
   return `${gameId}:${userId}`;

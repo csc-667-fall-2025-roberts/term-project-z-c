@@ -53,6 +53,32 @@ export const renderPlayersHand = async(cards : DisplayGameCard[]) => {
     }
 }
 
+export const setupCardClickHandler = (hand: DisplayGameCard[], socket: any) => {
+    const playerHandDiv = document.getElementById('playerCards');
+    if (!playerHandDiv) return;
+
+    // Delegate click event to the cards
+    playerHandDiv.addEventListener('click', (event) => {
+        const target = event.target as HTMLElement;
+        if (!target.classList.contains('clickable')) return;
+
+        const cardId = target.getAttribute('data-card-id');
+        if (!cardId) return;
+
+        const cardIndex = hand.findIndex(c => c.id.toString() === cardId);
+        if (cardIndex === -1) return;
+
+        const cardToPlay = hand[cardIndex];
+
+        // Send the card to the server
+        socket.emit('playCard', cardToPlay);
+
+        // Remove the card locally and re-render
+        hand.splice(cardIndex, 1);
+        renderPlayersHand(hand);
+    });
+};
+
 
 export const renderDiscardPile = async (cards : DisplayGameCard[]) => {
     const discardPileDiv = document.getElementById('discardCard');

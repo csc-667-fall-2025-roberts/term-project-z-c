@@ -50,8 +50,14 @@ ORDER BY c.location
 // play a card (remove from hand)
 export const PLAY_CARD = `
 UPDATE cards
-SET owner_id = 0, location = -1
-Where id = $1 AND game_id = $2 AND owner_id = $3
+SET 
+  owner_id = 0,
+  location = (
+    SELECT COALESCE(MIN(location), 0) - 1
+    FROM cards
+    WHERE game_id = $2 AND location < 0
+  )
+WHERE id = $1 AND game_id = $2 AND owner_id = $3
 RETURNING *;
 `;
 
@@ -60,11 +66,11 @@ RETURNING *;
 
 export const GET_TOP_Card  = `
 SELECT c.id, dc.color, dc.value
-    FROM cards c
-    JOIN deck_cards dc ON c.deck_card_id = dc.id
-    WHERE c.game_id = $1 AND c.location = -1
-    ORDER BY c.id DESC
-    LIMIT 1;
+FROM cards c
+JOIN deck_cards dc ON c.deck_card_id = dc.id
+WHERE c.game_id = $1 AND c.location < 0
+ORDER BY c.location ASC
+LIMIT 1;
 `;
 
 

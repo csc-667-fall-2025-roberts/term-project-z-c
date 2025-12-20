@@ -919,7 +919,14 @@
             // Remove card from hand
             if (cardWrapper) {
               cardWrapper.remove();
+
+              // Update player card count
+              const playerCardCount = document.getElementById("playerCardCount");
+              if (playerCardCount) {
+                playerCardCount.textContent = hand.children.length.toString();
+              }
             }
+
 
             selectedCard = null;
           },
@@ -1059,7 +1066,13 @@
               card.textContent = value;
 
               wrapper.appendChild(card);
+              
               hand.appendChild(wrapper);
+              const playerCardCount = document.getElementById("playerCardCount");
+              if (playerCardCount) {
+                playerCardCount.textContent = hand.children.length.toString();
+              }
+
             },
             { once: true }
           );

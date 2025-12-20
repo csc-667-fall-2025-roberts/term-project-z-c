@@ -26,7 +26,8 @@ import {
     hideColorSelectionUI,
     showWinnerScreen,
     showGameNotification,
-    updateAllPlayerHandCounts
+    updateAllPlayerHandCounts,
+    setupCardClickHandler,
 } from './games-UI';
 
 import type { DisplayGameCard, User } from "../types/types";
@@ -98,6 +99,7 @@ socket.on(CARD_DEAL, (data: { gameId: number; cards: DisplayGameCard[] }) => {
 
     myhand = data.cards;
     renderPlayersHand(myhand);
+    setupCardClickHandler(myhand, socket);
 
     
 } );

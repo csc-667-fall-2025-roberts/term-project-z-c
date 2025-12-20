@@ -7,6 +7,13 @@ import { Server } from "socket.io";
 import logger from "../lib/logger";
 import { broadcastGameStateUpdate } from "../sockets/pre-game-sockets";
 
+
+export async function getAvailableGames() {
+  // Get games where state = 'waiting'
+  const waitingGames = await Games.list();
+  return waitingGames;
+}
+
 const Cards_Per_Player = 7;
 
 //fisher-yates shuffle

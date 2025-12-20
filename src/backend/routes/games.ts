@@ -23,6 +23,7 @@ import {
   broadcastSkip,
   broadcastReverse,
   broadcastColorChosen,
+  broadcastGameState,
 } from "../sockets/gameplay-socket";
 
 const router = express.Router();
@@ -434,6 +435,8 @@ router.post("/:game_id/play", async (request, response) => {
     }
 
     const io = request.app.get("io") as Server;
+    await broadcastGameState(io, gameId);
+
 
     broadcastCardPlay(io, gameId, userId, username, {
       id: card!.id,
@@ -499,7 +502,10 @@ router.post("/:game_id/draw", async (request, response) => {
     const result = await drawCards(gameId, userId, count || 1);
 
     const io = request.app.get("io") as Server;
+    await broadcastGameState(io, gameId);
     broadcastDraw(io, gameId, userId, username, count || 1);
+    
+
 
     const handCounts = await Cards.getHandCount(gameId);
     broadcastHandUpdate(io, gameId, handCounts);
@@ -522,6 +528,7 @@ router.post("/:game_id/end-turn", async (request, response) => {
     await endTurn(gameId, userId);
 
     const io = request.app.get("io") as Server;
+    await broadcastGameState(io, gameId);
     const turnInfo = await getCurrentTurn(gameId);
     broadcastTurnChange(
       io,
