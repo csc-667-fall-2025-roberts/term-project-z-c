@@ -21,6 +21,11 @@ export const initSockets = (httpServer: HTTPServer) => {
     const session = socket.request.session as { id: string; user: User };
     logger.info(`socket for user session ${session.id} established`);
 
+    if (!session || !session.user) {
+      logger.warn("Unauthorized socket connection attempt; disconnecting");
+      socket.disconnect(true);
+      return;
+    }
     socket.join(session.id);
     socket.join(GLOBAL_ROOM);
 

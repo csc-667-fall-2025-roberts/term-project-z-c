@@ -20,7 +20,7 @@ export async function up(pgm: MigrationBuilder): Promise<void> {
     capacity: {
       type: "int",
       notNull: true,
-      check: "capacity > 2 AND capacity < 11",
+      check: "capacity >= 2 AND capacity < 11",
     },
     winner_id: {
       type: "int",
