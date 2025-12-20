@@ -201,7 +201,7 @@ export const initSockets = (httpServer: HTTPServer) => {
           return;
         }
 
-        // Clear any existing timeout first (safety)
+        // Clear any existing timeout first to avoid duplicates
         const existingTimeout = hostTimeouts.get(gameId);
         if (existingTimeout) {
           clearTimeout(existingTimeout);

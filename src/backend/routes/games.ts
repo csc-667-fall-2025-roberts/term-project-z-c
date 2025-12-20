@@ -244,15 +244,15 @@ router.post("/:game_id/leave", async (request, response) => {
     const io = request.app.get("io") as Server;
     const sessionId = request.session.id;
 
-    // Start timer to allow rejoin within 2 minutes (soft-leave).
+    // Start timer to allow rejoin within 2 minutes.
     // startDisconnectTimer will mark the player disconnected in DB and schedule hard removal if they don't return.
     await startDisconnectTimer(io, gameId, id, sessionId);
     logger.info(`User ${id} disconnected from game ${gameId}, started disconnect timer`);
 
-    // Notify waiting room that the player left (preserves previous behavior)
+    // Notify waiting room that the player left
     io.to(`WAITING_ROOM_${gameId}`).emit("PLAYER_LEFT", { userId: id, gameId });
 
-    // After soft-leave, evaluate host/ending logic using connected players only
+    // After disconnect, evaluate host/ending logic using connected players only
     const remainingConnected = await Games.getConnectedPlayers(gameId);
 
     if (remainingConnected.length === 0) {

@@ -3,80 +3,217 @@
 <head>
   <meta charset="UTF-8" />
   <title>Waiting to Rejoin</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
-    body {
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      background: #f9fafb;
-      color: #333;
+    /* Root colors matching your lobby */
+    :root {
+      --bg-green: #6aa84f;
+      --card-bg: #f9fdf7;
+      --text-dark: #2f4f2f;
+      --text-muted: #4a6a4a;
+      --primary-green: #4a7c2f;
+      --primary-green-hover: #3e6a28;
+      --danger-red: #d9534f;
+      --danger-red-hover: #c9302c;
+      --shadow: 0 4px 12px rgba(0,0,0,0.1);
+      --radius: 14px;
+      --font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+
+    /* Reset and base */
+    html, body {
+      margin: 0; padding: 0; height: 100%;
+      background-color: var(--bg-green);
+      font-family: var(--font-family);
+      color: var(--text-dark);
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    /* Center container */
+    .wrap {
+      min-height: 100%;
       display: flex;
       justify-content: center;
       align-items: center;
-      height: 100vh;
-      margin: 0;
+      padding: 24px;
     }
-    .container {
-      background: white;
-      padding: 2.5rem 3rem;
-      border-radius: 12px;
-      box-shadow: 0 8px 24px rgba(0,0,0,0.1);
-      max-width: 400px;
+
+    /* Card style */
+    .card {
+      background: var(--card-bg);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 32px 36px;
+      max-width: 480px;
+      width: 100%;
+      box-sizing: border-box;
       text-align: center;
+      position: relative;
     }
+
     h1 {
-      margin-bottom: 1rem;
-      color: #1f2937;
-    }
-    p {
-      font-size: 1.1rem;
-      margin: 0.5rem 0 1.5rem;
-      color: #4b5563;
-    }
-    #countdown {
+      font-size: 28px;
       font-weight: 700;
-      font-size: 2.5rem;
-      color: #ef4444; /* red-500 */
-      margin-bottom: 2rem;
-      display: block;
+      margin-bottom: 12px;
+      color: var(--primary-green);
+      text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
     }
+
+    p.subtitle {
+      font-size: 16px;
+      color: var(--text-muted);
+      margin-bottom: 24px;
+    }
+
+    #countdown {
+      font-size: 48px;
+      font-weight: 700;
+      color: var(--primary-green);
+      margin-bottom: 24px;
+      letter-spacing: 1.5px;
+    }
+
+    /* Buttons */
     button {
-      cursor: pointer;
-      font-size: 1rem;
-      padding: 0.75rem 1.5rem;
-      border-radius: 8px;
+      font-size: 16px;
+      font-weight: 600;
+      padding: 12px 28px;
+      border-radius: 10px;
       border: none;
-      margin: 0.5rem;
-      transition: background-color 0.3s ease;
-      width: 140px;
-    }
-    #rejoinBtn {
-      background-color: #3b82f6; /* blue-500 */
+      cursor: pointer;
+      transition: background-color 0.25s ease;
+      min-width: 140px;
+      margin: 0 8px;
+      box-shadow: 0 4px 8px rgba(74,124,47,0.3);
       color: white;
+      user-select: none;
+    }
+
+    button:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      box-shadow: none;
+    }
+
+    #rejoinBtn {
+      background-color: var(--primary-green);
     }
     #rejoinBtn:hover:not(:disabled) {
-      background-color: #2563eb; /* blue-600 */
+      background-color: var(--primary-green-hover);
     }
-    #rejoinBtn:disabled {
-      background-color: #93c5fd; /* blue-300 */
-      cursor: not-allowed;
-    }
+
     #leaveBtn {
-      background-color: #ef4444; /* red-500 */
-      color: white;
+      background-color: var(--danger-red);
+      box-shadow: 0 4px 8px rgba(217,83,79,0.3);
     }
     #leaveBtn:hover {
-      background-color: #dc2626; /* red-600 */
+      background-color: var(--danger-red-hover);
+    }
+
+    /* Button container */
+    .actions {
+      display: flex;
+      justify-content: center;
+      margin-top: 12px;
+    }
+
+    /* Modal styles */
+    #confirmModal {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.4);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 1100;
+    }
+    #confirmModal[aria-hidden="false"] {
+      display: flex;
+    }
+    .modal-content {
+      background: var(--card-bg);
+      border-radius: var(--radius);
+      padding: 28px 36px;
+      max-width: 400px;
+      width: 90%;
+      box-shadow: var(--shadow);
+      text-align: center;
+    }
+    .modal-content h2 {
+      margin-top: 0;
+      font-weight: 700;
+      font-size: 22px;
+      color: var(--primary-green);
+      text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
+    }
+    .modal-content p {
+      margin: 16px 0 28px;
+      color: var(--text-muted);
+      font-size: 16px;
+    }
+    .modal-actions {
+      display: flex;
+      justify-content: center;
+      gap: 20px;
+    }
+    .btn-primary {
+      background-color: var(--primary-green);
+      color: white;
+      box-shadow: 0 4px 12px rgba(74,124,47,0.4);
+      min-width: 120px;
+    }
+    .btn-primary:hover {
+      background-color: var(--primary-green-hover);
+    }
+    .btn-secondary {
+      background-color: #e0e6db;
+      color: var(--primary-green);
+      min-width: 120px;
+      box-shadow: none;
+    }
+    .btn-secondary:hover {
+      background-color: #c7d1bb;
+    }
+
+    /* Responsive */
+    @media (max-width: 520px) {
+      .card {
+        padding: 24px 20px;
+      }
+      button {
+        min-width: 120px;
+        margin: 0 6px;
+      }
+      .modal-content {
+        padding: 24px 20px;
+      }
     }
   </style>
 </head>
 <body>
-  <div class="container">
-    <h1>You left the game</h1>
-    <p>You have 2 minutes to rejoin before the game ends.</p>
-    <span id="countdown">120</span> seconds remaining
+  <div class="wrap" role="main">
+    <section class="card" aria-labelledby="waitingTitle" aria-describedby="waitingDesc">
+      <h1 id="waitingTitle">You left the game</h1>
+      <p id="waitingDesc" class="subtitle">You have 2 minutes to rejoin before the game ends.</p>
+      <div id="countdown" aria-live="polite" aria-atomic="true">120</div>
 
-    <div>
-      <button id="rejoinBtn">Rejoin Now</button>
-      <button id="leaveBtn">Leave Game</button>
+      <div class="actions" role="group" aria-label="Rejoin or leave game">
+        <button id="rejoinBtn" type="button" aria-describedby="waitingDesc">Rejoin Game</button>
+        <button id="leaveBtn" type="button">Leave Game</button>
+      </div>
+    </section>
+  </div>
+
+  <!-- Confirmation Modal -->
+  <div id="confirmModal" class="modal" aria-hidden="true" role="dialog" aria-labelledby="modalTitle" aria-describedby="modalDesc">
+    <div class="modal-content" role="document">
+      <h2 id="modalTitle">Leave Game?</h2>
+      <p id="modalDesc">Are you sure you want to permanently leave this game and return to the lobby?</p>
+      <div class="modal-actions">
+        <button id="cancelBtn" class="btn btn-secondary" type="button">Cancel</button>
+        <button id="confirmBtn" class="btn btn-primary" type="button">OK</button>
+      </div>
     </div>
   </div>
 
@@ -88,6 +225,9 @@
     const countdownEl = document.getElementById('countdown');
     const rejoinBtn = document.getElementById('rejoinBtn');
     const leaveBtn = document.getElementById('leaveBtn');
+    const modal = document.getElementById('confirmModal');
+    const cancelBtn = document.getElementById('cancelBtn');
+    const confirmBtn = document.getElementById('confirmBtn');
 
     if (!currentGameId) {
       console.warn('waiting.ejs: no gameId provided');
@@ -95,9 +235,14 @@
 
     socket.emit('JOIN_WAITING_ROOM', { gameId: currentGameId });
 
-    socket.on('REJOIN_EXPIRED', (data) => {
+    socket.on('GAME_STARTED', (data) => {
       if (data && data.gameId === currentGameId) {
-        alert('Rejoin window expired. Redirecting to lobby.');
+        window.location.href = `/games/${currentGameId}`;
+      }
+    });
+
+    socket.on('GAME_ENDED', (data) => {
+      if (data && data.gameId === currentGameId) {
         window.location.href = '/lobby';
       }
     });
@@ -108,53 +253,68 @@
       }
     });
 
+    socket.on('REJOIN_EXPIRED', (data) => {
+      if (data && data.gameId === currentGameId) {
+        alert('Rejoin window expired. Redirecting to lobby.');
+        window.location.href = '/lobby';
+      }
+    });
+
     let timeLeft = 120;
-    const interval = setInterval(() => {
+    const countInterval = setInterval(() => {
       timeLeft--;
-      if (countdownEl) countdownEl.textContent = String(Math.max(0, timeLeft));
+      countdownEl.textContent = String(Math.max(0, timeLeft));
       if (timeLeft <= 0) {
-        clearInterval(interval);
         rejoinBtn.disabled = true;
+        clearInterval(countInterval);
       }
     }, 1000);
 
     async function tryRejoin() {
       rejoinBtn.disabled = true;
       rejoinBtn.textContent = 'Trying...';
-
       try {
         const res = await fetch(`/games/${currentGameId}/join`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({})
         });
-
-        const data = await res.json();
+        const data = await res.json().catch(() => ({}));
         if (res.ok && data.ok) {
           window.location.href = `/games/${currentGameId}`;
         } else {
-          alert('Failed to rejoin: ' + (data?.error || 'unknown error'));
+          alert('Failed to rejoin: ' + (data?.error || 'Unknown error'));
           rejoinBtn.disabled = false;
-          rejoinBtn.textContent = 'Rejoin Now';
+          rejoinBtn.textContent = 'Rejoin Game';
         }
       } catch (err) {
-        console.error('Rejoin request failed', err);
+        console.error('Rejoin failed', err);
         alert('Network error while trying to rejoin.');
         rejoinBtn.disabled = false;
-        rejoinBtn.textContent = 'Rejoin Now';
+        rejoinBtn.textContent = 'Rejoin Game';
       }
     }
 
-    async function leaveGame() {
+    function openModal() {
+      modal.setAttribute('aria-hidden', 'false');
+      // Focus first button for accessibility
+      cancelBtn.focus();
+    }
+
+    function closeModal() {
+      modal.setAttribute('aria-hidden', 'true');
+      leaveBtn.focus();
+    }
+
+    async function confirmLeave() {
+      modal.setAttribute('aria-hidden', 'true');
       leaveBtn.disabled = true;
       leaveBtn.textContent = 'Leaving...';
-
       try {
         const res = await fetch(`/games/${currentGameId}/leave`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' }
         });
-
         if (res.ok) {
           window.location.href = '/lobby';
         } else {
@@ -171,7 +331,16 @@
     }
 
     rejoinBtn.addEventListener('click', tryRejoin);
-    leaveBtn.addEventListener('click', leaveGame);
+    leaveBtn.addEventListener('click', openModal);
+    cancelBtn.addEventListener('click', closeModal);
+    confirmBtn.addEventListener('click', confirmLeave);
+
+    // Close modal on Escape key
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && modal.getAttribute('aria-hidden') === 'false') {
+        closeModal();
+      }
+    });
   </script>
 </body>
 </html>

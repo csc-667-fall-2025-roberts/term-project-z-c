@@ -71,7 +71,7 @@ const loadPlayers = async () => {
     window.location.href = "/lobby";
   }
 };
-
+// Render player cards
 const renderedPlayers = () => {
   const cards: string[] = [];
 
@@ -114,6 +114,7 @@ const renderedPlayers = () => {
   playersList.innerHTML = cards.join("");
 };
 
+// Update ready status UI
 const updateReadyStatus = () => {
   const readyCount = players.filter((p) => p.is_ready).length;
   const percentage = players.length > 0 ? (readyCount / players.length) * 100 : 0;
@@ -146,6 +147,7 @@ const updateReadyStatus = () => {
   }
 };
 
+// Append a game chat message to the listing
 const appendGameMessage = ({ username, created_at, message, user_id }: ChatMessage) => {
   const clone = gameChatTemplate.content.cloneNode(true) as DocumentFragment;
   const messageElement = clone.querySelector(".chat-message") as HTMLElement;
@@ -170,6 +172,7 @@ const appendGameMessage = ({ username, created_at, message, user_id }: ChatMessa
   gameChatListing.scrollTop = gameChatListing.scrollHeight;
 };
 
+// Send game chat message
 const sendGameMessage = () => {
   const text = gameChatInput.value.trim();
   if (!text) return;
@@ -184,6 +187,7 @@ const sendGameMessage = () => {
   gameChatInput.value = "";
 };
 
+// Initial load of game chat messages
 const loadGameChat = async () => {
   try {
     const response = await fetch(`/chat/${gameId}/waiting`, {

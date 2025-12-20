@@ -10,10 +10,10 @@ const input = document.querySelector<HTMLInputElement>("#game-message-submit inp
 const button = document.querySelector<HTMLButtonElement>("#game-message-submit button")!;
 const messageTemplate = document.querySelector<HTMLTemplateElement>("#template-game-chat-message")!;
 
-// game id from page, e.g. <body data-game-id="1">
+// Get game ID from data attribute
 const gameId = Number(document.body.dataset.gameId);
 
-// same user-id helper if you like
+// Get current user ID from page 
 const getUserIdFromPage = (): number => {
   const userInfoText = document.querySelector(".user-info")?.textContent || "";
   const match = userInfoText.match(/ID: (\d+)/);

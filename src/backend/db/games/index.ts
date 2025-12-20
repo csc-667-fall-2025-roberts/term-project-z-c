@@ -151,7 +151,7 @@ const updateHost = async (game_id: number, newHostId: number) =>
     [newHostId, game_id]
   );
 
-  // Mark player as disconnected (soft leave)
+  // Mark player as disconnected in a game
 const markPlayerDisconnected = async (game_id: number, user_id: number) =>
   await db.none(MARK_PLAYER_DISCONNECTED, [game_id, user_id]);
 

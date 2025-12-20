@@ -11,7 +11,7 @@ import { Chat } from "../db";
 
 const router = express.Router();
 
-// ===== GLOBAL / LEGACY CHAT (used by src/frontend/chat.ts) =====
+// ===== GLOBAL / LEGACY CHAT =====
 router.get("/", async (request, response) => {
   const { id } = request.session;
   const messages = await Chat.list();
